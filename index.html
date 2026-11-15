@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+        <title>HackPrinceton</title>
+        <link rel="stylesheet" href="/style.css">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,100..900;1,100..900&family=Pixelify+Sans:wght@400..700&display=swap" rel="stylesheet">
+    </head>
+
+    <body>
+        <div id="nav-arrows" class="nav-arrows hidden">
+            <button id="back-btn" class="icon-btn btn-back" aria-label="Back"></button>
+            <button id="forward-btn" class="icon-btn btn-forward" aria-label="Forward"></button>
+        </div>
+
+        <div id="menu" class="menu">
+            <button id="menu-btn" class="icon-btn btn-menu" aria-label="Menu"></button>
+            <div id="menu-list" class="menu-list hidden">
+                <button class="menu-item" data-panel="about-panel">About</button>
+                <button class="menu-item" data-panel="contact-panel">Contact</button>
+                <button id="replay-intro" class="menu-item">Play Intro</button>
+                <button id="logout-btn" class="menu-item">Sign Out</button>
+            </div>
+        </div>
+
+        <button id="log-btn" class="pixel-btn log-btn">Log</button>
+
+        <div id="log-panel" class="panel-backdrop hidden">
+            <div class="book">
+                <button class="icon-btn btn-close panel-close" aria-label="Close"></button>
+
+                <div class="book-tabs">
+                    <button class="book-tab active" data-tab="tab-info">Info</button>
+                    <button class="book-tab" data-tab="tab-pets">Pets</button>
+                    <button class="book-tab" data-tab="tab-achievements">Achievements</button>
+                    <button class="book-tab" data-tab="tab-settings">Settings</button>
+                </div>
+
+                <div id="tab-info" class="book-page">
+                    <h2 id="log-name"></h2>
+                    <p>Joined: <span id="log-joined">—</span></p>
+                    <p>Level <span id="log-level">1</span></p>
+                    <div class="xp-bar"><div id="xp-fill" class="xp-fill"></div></div>
+                    <p id="log-xp-text"></p>
+                    <p>Modules completed: <span id="log-modules">0</span></p>
+                </div>
+
+                <div id="tab-pets" class="book-page hidden">
+                    <div id="pet-grid" class="pet-grid"></div>
+                </div>
+
+                <div id="tab-achievements" class="book-page hidden">
+                    <p>Coming soon...</p>
+                </div>
+
+                <div id="tab-settings" class="book-page hidden">
+                    <label class="setting">Music
+                        <input type="range" id="music-vol" min="0" max="100">
+                    </label>
+                    <label class="setting">Sound effects
+                        <input type="range" id="sfx-vol" min="0" max="100">
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div id="about-panel" class="panel-backdrop hidden">
+            <div class="panel">
+                <button class="icon-btn btn-close panel-close" aria-label="Close"></button>
+
+                <h2>What is <span class="app-name"></span>?</h2>
+                <p><span class="app-name"></span> is an application that provides a gamified STEM learning experience. You explore a world where you earn XP, level up, and collect pet companions as you learn.</p>
+
+                <h3>Who is this for?</h3>
+                <p><span class="app-name"></span> was made with students in mind, but anyone can use it! Learning can sometimes feel challenging, and research suggests that learning actively through gamification can make the process easier.</p>
+                <p>Growing up, and even in college, I struggled with learning certain topics and making them stick. <span class="app-name"></span> is meant for supplementary learning alongside your main studies, to reinforce what you already know or introduce something new.</p>
+
+                <h3>How it was built</h3>
+                <p><strong>Tech stack:</strong> HTML, CSS, JavaScript, Vite, Firebase Authentication (Google sign-in), Cloud Firestore, and the Wolfram|Alpha API.</p>
+                <p><span class="app-name"></span> was built independently during HackPrinceton Fall 2026.</p>
+
+                <h3>About me</h3>
+                <p>I'm a second-year student at the Community College of Philadelphia. In my free time, I enjoy cooking for my family and myself.</p>
+            </div>
+        </div>
+
+        <div id="contact-panel" class="panel-backdrop hidden">
+            <div class="panel">
+                <button class="icon-btn btn-close panel-close" aria-label="Close"></button>
+                <h2>Contact</h2>
+                <p>Want to connect or see more of my work?</p>
+                <div class="contact-links">
+                    <a href="https://www.linkedin.com/in/aixa-roblero-bbb8b8200/" target="_blank" rel="noopener">
+                        <img src="/images/LinkedInLogo.png" alt="LinkedIn"> LinkedIn
+                    </a>
+                    <a href="https://github.com/aixa01" target="_blank" rel="noopener">
+                        <img src="/images/gitHubLogo.png" alt="GitHub"> GitHub
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <section id="login">
+            <div class="parallax">
+                <div class="layer" style="--img:url('/images/cloud1.png'); --speed:0s"></div>
+                <div class="layer" style="--img:url('/images/cloud2.png'); --speed:120s"></div>
+                <div class="layer" style="--img:url('/images/cloud3.png'); --speed:80s"></div>
+                <div class="layer" style="--img:url('/images/cloud4.png'); --speed:50s"></div>
+                <div class="layer" style="--img:url('/images/cloud5.png'); --speed:30s"></div>
+            </div>
+
+            <div class="login-card">
+                <h1>HackPrinceton</h1>
+                <button id="login-btn" class="pixel-btn">Sign in with Google</button>
+            </div>
+
+            <div class="socials">
+                <a href="https://www.linkedin.com/in/aixa-roblero-bbb8b8200/" target="_blank" rel="noopener">
+                    <img src="/images/LinkedInLogo.png" alt="LinkedIn">
+                </a>
+                <a href="https://github.com/aixa01" target="_blank" rel="noopener">
+                    <img src="/images/gitHubLogo.png" alt="GitHub">
+                </a>
+            </div>
+        </section>
+
+        <section id="intro" class="hidden">
+            <div class="parallax">
+                <div class="layer" style="--img:url('/images/nature1.png'); --speed: 0s"></div>
+                <div class="layer" style="--img:url('/images/nature2.png'); --speed: 100s"></div>
+                <div class="layer" style="--img:url('/images/nature3.png'); --speed: 70s"></div>
+                <div class="layer" style="--img:url('/images/nature4.png'); --speed: 45s"></div>
+                <div class="layer" style="--img:url('/images/nature5.png'); --speed: 25s"></div>
+            </div>
+
+            <div id="textbox" class="textbox">
+                <p class="speaker">Textbook</p>
+                <p id="intro-text"></p>
+                <span class="hint">Click to Continue</span>
+            </div>
+
+            <button id="skip-btn" class="pixel-btn skip">Skip</button>
+        </section>
+
+        <section id="name" class="hidden">
+            <div class="textbox">
+                <p class="speaker">Textbook</p>
+                <p>Welcome! What is your name?</p>
+                <input id="name-input" placeholder="Type your name" maxLength="20"/>
+                <button id="name-next" class="pixel-btn">Next</button>
+            </div>
+        </section>
+
+        <section id="welcome-back" class="hidden">
+            <div class="textbox">
+                <p class="speaker">Textbook</p>
+                <p id="welcome-text"></p>
+                <button id="continue-btn" class="pixel-btn">Continue</button>
+            </div>
+        </section>
+        <section id="creator" class="hidden">
+            <div class="creator-box">
+                <h2>Design your character</h2>
+        
+                <div class="char-preview">
+                    <div class="char-layer" data-layer="body"></div>
+                    <div class="char-layer" data-layer="shoes"></div>
+                    <div class="char-layer" data-layer="pants"></div>
+                    <div class="char-layer" data-layer="shirt"></div>
+                    <div class="char-layer" data-layer="hair"></div>
+                    <div class="char-layer" data-layer="hat"></div>
+                </div>
+        
+                <div id="char-options" class="char-options"></div>
+        
+                <button id="creator-done" class="pixel-btn">Choose this character</button>
+            </div>
+        </section>
+        
+        <section id="story" class="hidden"><p id="story-text"></p></section>
+        <section id="tutorial" class="hidden"><h2>Choose your first path</h2></section>
+        <section id="map" class="hidden">
+            <div class="parallax">
+                <div class="layer" style="--img:url('/images/mountain1.png'); --speed: 100s"></div>
+                <div class="layer" style="--img:url('/images/mountain2.png'); --speed: 100s"></div>
+                <div class="layer" style="--img:url('/images/mountain3.png'); --speed: 70s"></div>
+                <div class="layer" style="--img:url('/images/mountain4.png'); --speed: 45s"></div>
+            </div>
+
+            <div class="map-content">
+                <h2 class="map-title">Choose a path</h2>
+                <div class="topic-list">
+                    <button class="pixel-btn" data-topic="math">Math</button>
+                    <button class="pixel-btn" data-topic="cs">Computer Science</button>
+                </div>
+            </div>
+        </section>
+
+        <script type="module" src="/script.js"></script>
+    </body>
+</html>
