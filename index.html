@@ -27,8 +27,7 @@
             </div>
         </div>
 
-        <button id="log-btn" class="pixel-btn log-btn hidden">Log</button>
-
+        <button id="log-btn" class="pixel-btn log-btn hidden">Learning Log</button>
         <div id="log-panel" class="panel-backdrop hidden">
             <div class="book-wrap">
                 <div class="book-banner">Learning Log</div>
@@ -44,10 +43,10 @@
                     <button class="book-tab" data-tab="tab-settings">
                         <img src="/images/ui/UI_TravelBook_IconGear01a.png" alt=""> Settings
                     </button>
+                    <button class="icon-btn btn-close panel-close log-close" aria-label="Close"></button>
                 </div>
         
                 <div class="book">
-                    <button class="icon-btn btn-close panel-close" aria-label="Close"></button>
         
                     <div id="tab-info" class="book-page">
                         <div class="page left">
@@ -245,6 +244,9 @@
                     <div class="topic-list">
                         <button class="pixel-btn topic-btn" data-topic="math">Math</button>
                         <button class="pixel-btn topic-btn" data-topic="cs">Computer Science</button>
+                        <button class="pixel-btn topic-btn" data-topic="physics">Physics</button>
+                        <button class="pixel-btn topic-btn" data-topic="biology">Biology</button>
+                        <button class="pixel-btn topic-btn" data-topic="chemistry">Chemistry</button>
                     </div>
                 </div>
             </div>
@@ -257,10 +259,21 @@
                 <div class="layer" style="--img:url('/images/mountain3.png'); --speed:120s"></div>
                 <div class="layer" style="--img:url('/images/mountain4.png'); --speed:80s"></div>
             </div>
-            <div class="textbox">
-                <p class="speaker">Textbook</p>
-                <p id="lesson-text"></p>
-                <button id="lesson-back" class="pixel-btn">Back to map</button>
+            <div class="lesson-content">
+                <div class="lesson-card">
+                    <p class="speaker" id="lesson-track"></p>
+                    <h2 id="lesson-title"></h2>
+                    <div class="lesson-progress"><div id="lesson-progress-fill"></div></div>
+                    <h3 id="lesson-heading"></h3>
+                    <div id="lesson-body" class="lesson-body"></div>
+                    <div id="lesson-choices" class="lesson-choices"></div>
+                    <p id="lesson-feedback" class="lesson-feedback"></p>
+                    <div class="lesson-nav">
+                        <button id="lesson-prev" class="pixel-btn">Back</button>
+                        <button id="lesson-next" class="pixel-btn">Next</button>
+                    </div>
+                    <button id="lesson-back" class="lesson-exit">Back to map</button>
+                </div>
             </div>
         </section>
 

@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
+import { MODULES } from './modules.js';
 
 // Firebase
 const firebaseConfig = {
@@ -176,7 +177,7 @@ const introLines = [
     "With knowledge, we came to understand the Earth, and then we used it to build, invent, and move forward.",
     "But the world still has room to grow. And it grows stronger with every person who learns.",
     "Here, you'll explore topics like math and computer science by visiting different places and meeting new characters.",
-    "Spend time on a module to earn XP. Earn enough, and you'll level up. Finish a whole topic, and a pet companion will join you on your journey.",
+    "Spend time on a module to earn XP. Earn enough, and you'll level up. Every time you level up, a new pet companion will join you on your journey.",
     "Ready to help the world grow? First, tell us who you are..."
 ];
 
@@ -389,17 +390,37 @@ document.addEventListener('click', (e) => {
 });
 
 // ---------- LEARNING LOG ----------
+// One new pet per level: PETS[0] joins at Level 2, PETS[1] at Level 3, and so on.
+// Sprites live in public/images/pets/<id>/0.png and 1.png (two-frame idle animation).
 const PETS = [
-    { id: 'capybara', name: 'Capybara', img: '/images/pets/capybara.png', hint: 'Complete Math Module 1' },
-    { id: 'toucan',   name: 'Toucan',   img: '/images/pets/toucan.png',   hint: 'Complete CS Module 1' },
-    { id: 'frog',     name: 'Frog',     img: '/images/pets/frog.png',     hint: 'Complete 3 modules' },
+    { id: 'capybara', name: 'Capybara' },
+    { id: 'duck',     name: 'Duck' },
+    { id: 'chicken',  name: 'Chicken' },
+    { id: 'squirrel', name: 'Squirrel' },
+    { id: 'rat',      name: 'Rat' },
+    { id: 'alpaca',   name: 'Alpaca' },
+    { id: 'seal',     name: 'Seal' },
+    { id: 'kangaroo', name: 'Kangaroo' },
+    { id: 'panda',    name: 'Panda' },
+    { id: 'tiger',    name: 'Tiger' },
 ];
+
+const XP_PER_LEVEL = 100;
+const levelFor = (xp) => Math.floor(xp / XP_PER_LEVEL) + 1;
+const petsForLevel = (level) => PETS.slice(0, Math.max(0, level - 1)).map(p => p.id);
+
+function petSprite(pet, cls = '') {
+    return `<span class="pet-sprite ${cls}">
+        <img src="/images/pets/${pet.id}/0.png" alt="">
+        <img src="/images/pets/${pet.id}/1.png" alt="">
+    </span>`;
+}
 
 function renderLog() {
     for (const key in LAYERS) applyLayer(key);
     const xp = profile.xp || 0;
-    const level = Math.floor(xp / 100) + 1;           // every 100 XP = 1 level
-    const xpIntoLevel = xp % 100;
+    const level = levelFor(xp);
+    const xpIntoLevel = xp % XP_PER_LEVEL;
 
     document.getElementById('log-name').textContent = profile.name || 'Traveler';
     document.getElementById('log-joined').textContent = profile.joinedAt
@@ -410,14 +431,15 @@ function renderLog() {
     document.getElementById('log-xp-text').textContent = `${xpIntoLevel} / 100 XP to Level ${level + 1}`;
     document.getElementById('log-modules').textContent = (profile.completedModules || []).length;
 
-    const owned = profile.pets || [];
+    const owned = petsForLevel(level);
     const grid = document.getElementById('pet-grid');
     grid.innerHTML = '';
     PETS.forEach((pet, i) => {
         const has = owned.includes(pet.id);
         const slot = document.createElement('div');
         slot.className = 'pet' + (has ? '' : ' locked');
-        slot.innerHTML = `<img src="${pet.img}" alt="${has ? pet.name : 'Unknown pet'}">`;
+        slot.innerHTML = petSprite(pet);
+        slot.setAttribute('aria-label', has ? pet.name : 'Locked pet');
         slot.addEventListener('click', () => { makeSound("click"); selectPet(i); });
         grid.appendChild(slot);
     });
@@ -425,11 +447,11 @@ function renderLog() {
 
     function selectPet(i) {
         const pet = PETS[i];
-        const has = (profile.pets || []).includes(pet.id);
+        const has = owned.includes(pet.id);
         document.querySelectorAll('.pet').forEach((p, j) => p.classList.toggle('selected', j === i));
         document.getElementById('pet-detail').innerHTML = has
-            ? `<h3>${pet.name}</h3><img class="pet-big" src="${pet.img}" alt="${pet.name}"><p>Your companion!</p>`
-            : `<h3>???</h3><img class="pet-big locked" src="${pet.img}" alt="Unknown pet"><p class="small">${pet.hint}</p>`;
+            ? `<h3>${pet.name}</h3>${petSprite(pet, 'pet-big')}<p>Your companion!</p>`
+            : `<h3>???</h3>${petSprite(pet, 'pet-big locked')}<p class="small">Reach Level ${i + 2} to unlock</p>`;
     }
   
     // settings sliders show saved values
@@ -471,7 +493,7 @@ document.querySelectorAll('.book-tab').forEach(tab => {
 });
 
 // ---------- TRACKS ----------
-const TRACK_NAMES = { math: 'Math', cs: 'Computer Science' };
+const TRACK_NAMES = { math: 'Math', cs: 'Computer Science', physics: 'Physics', biology: 'Biology', chemistry: 'Chemistry' };
 let currentTrack = null;
 
 document.querySelectorAll('.topic-btn').forEach(btn => {
@@ -483,15 +505,364 @@ document.querySelectorAll('.topic-btn').forEach(btn => {
     });
 });
 
+// ---------- LESSONS ----------
+// correct answers needed to pass: about two-thirds (2 of 3, 3 of 4)
+const passScore = (mod) => Math.ceil(mod.quiz.length * 2 / 3);
+const el = (id) => document.getElementById(id);
+
+let lesson = null;                    // { topic, mod, phase, step, score, answered }
+
+// a module counts as done once its id (or, for a language module, any language) is completed
+const isDone = (mod, done) =>
+    done.includes(mod.id) || (mod.options && done.some(id => id.startsWith(mod.id + '-')));
+
 function startTrack(topic) {
-    document.getElementById('lesson-text').textContent =
-        `Welcome to the ${TRACK_NAMES[topic]} track! Your first lesson is almost ready...`;
+    const done = profile.completedModules || [];
+    const mods = MODULES[topic];
+    // next unfinished module, or replay the last one if all are done
+    const mod = mods.find(m => !isDone(m, done)) || mods[mods.length - 1];
+    el('lesson-track').textContent = `${TRACK_NAMES[topic]} · Module ${mods.indexOf(mod) + 1}`;
+    if (mod.options) {
+        lesson = { topic, parent: mod, mod: null, phase: 'choose', picked: null, step: 0, score: 0, answered: false };
+    } else {
+        lesson = { topic, mod, phase: 'read', step: 0, score: 0, answered: false };
+    }
     show('lesson');
+    renderLesson();
 }
 
-document.getElementById('lesson-back').addEventListener('click', () => {
+// turn a picked option into a normal lesson module (its own id, so each option awards XP once)
+function startLanguage(lang) {
+    const parent = lesson.parent;
+    lesson.mod = {
+        id: `${parent.id}-${lang.id}`,
+        title: `${parent.pickVerb} ${lang.name}`,
+        xp: parent.xp,
+        pages: lang.pages,
+        quiz: lang.quiz,
+    };
+    Object.assign(lesson, { phase: 'read', step: 0, score: 0, answered: false });
+    renderLesson();
+}
+
+function renderChooser() {
+    const parent = lesson.parent;
+    const done = profile.completedModules || [];
+    el('lesson-title').textContent = parent.title;
+    el('lesson-progress-fill').style.width = '0%';
+    el('lesson-heading').textContent = parent.pickPrompt;
+    el('lesson-body').innerHTML = `
+        <div class="lang-picker" id="lang-picker"></div>
+        <div class="lang-info" id="lang-info"><p class="small">Hover over an option to see what it's about. Click one to choose it.</p></div>`;
+    const picker = el('lang-picker');
+    const info = el('lang-info');
+
+    function showInfo(lang) {
+        info.innerHTML = '';
+        const h = document.createElement('h4');
+        h.textContent = lang.name;
+        const tags = document.createElement('p');
+        (lang.tags || []).forEach(t => {
+            const span = document.createElement('span');
+            span.className = 'tag';
+            span.textContent = t;
+            tags.append(span, ' ');
+        });
+        const purpose = document.createElement('p');
+        purpose.textContent = lang.purpose;
+        const label = document.createElement('p');
+        label.innerHTML = `<strong>${parent.infoHeading}</strong>`;
+        const list = document.createElement('ul');
+        lang.apps.forEach(a => {
+            const li = document.createElement('li');
+            li.textContent = a;
+            list.appendChild(li);
+        });
+        info.append(h, tags, purpose, label, list);
+    }
+
+    parent.options.forEach(lang => {
+        const btn = document.createElement('button');
+        btn.className = 'lang-option';
+        if (lesson.picked === lang) btn.classList.add('picked');
+        btn.textContent = lang.name + (done.includes(`${parent.id}-${lang.id}`) ? ' ✓' : '');
+        btn.addEventListener('mouseenter', () => showInfo(lang));
+        btn.addEventListener('focus', () => showInfo(lang));
+        btn.addEventListener('mouseleave', () => { if (lesson.picked) showInfo(lesson.picked); });
+        btn.addEventListener('click', () => {
+            makeSound("click");
+            lesson.picked = lang;
+            picker.querySelectorAll('.lang-option').forEach(b => b.classList.toggle('picked', b === btn));
+            showInfo(lang);
+            el('lesson-next').disabled = false;
+            el('lesson-next').textContent = `${parent.pickVerb} ${lang.name}`;
+        });
+        picker.appendChild(btn);
+    });
+    if (lesson.picked) showInfo(lesson.picked);
+
+    el('lesson-prev').classList.add('hidden');
+    el('lesson-next').disabled = !lesson.picked;
+    el('lesson-next').textContent = lesson.picked ? `${parent.pickVerb} ${lesson.picked.name}` : 'Pick one';
+}
+
+function renderLesson() {
+    el('lesson-choices').innerHTML = '';
+    el('lesson-feedback').textContent = '';
+    el('lesson-prev').classList.remove('hidden');
+    if (lesson.phase === 'choose') return renderChooser();
+    const { mod, phase, step } = lesson;
+    el('lesson-title').textContent = mod.title;
+    const totalSteps = mod.pages.length + mod.quiz.length;
+    const choicesBox = el('lesson-choices');
+    const prev = el('lesson-prev');
+    const next = el('lesson-next');
+    choicesBox.innerHTML = '';
+    el('lesson-feedback').textContent = '';
+    el('lesson-body').scrollTop = 0;
+    prev.classList.remove('hidden');
+    next.disabled = false;
+
+    if (phase === 'read') {
+        const page = mod.pages[step];
+        el('lesson-progress-fill').style.width = ((step + 1) / totalSteps * 100) + '%';
+        el('lesson-heading').textContent = page.heading;
+        el('lesson-body').innerHTML = page.body;
+        if (page.grid) renderGrid(page.grid);
+        if (page.wolfram) renderWolfram(page.wolfram);
+        prev.disabled = step === 0 && !lesson.parent;
+        next.textContent = step === mod.pages.length - 1 ? 'Start quiz' : 'Next';
+    }
+
+    else if (phase === 'quiz') {
+        const item = mod.quiz[step];
+        el('lesson-progress-fill').style.width = ((mod.pages.length + step + 1) / totalSteps * 100) + '%';
+        el('lesson-heading').textContent = `Question ${step + 1} of ${mod.quiz.length}`;
+        el('lesson-body').innerHTML = '';
+        const q = document.createElement('p');
+        q.textContent = item.q;
+        el('lesson-body').appendChild(q);
+        item.choices.forEach((choice, i) => {
+            const btn = document.createElement('button');
+            btn.className = 'lesson-choice';
+            btn.textContent = choice;
+            btn.addEventListener('click', () => answer(i));
+            choicesBox.appendChild(btn);
+        });
+        prev.classList.add('hidden');
+        next.disabled = !lesson.answered;
+        next.textContent = step === mod.quiz.length - 1 ? 'Finish' : 'Next';
+    }
+
+    else if (phase === 'result') {
+        el('lesson-progress-fill').style.width = '100%';
+        const passed = lesson.score >= passScore(lesson.mod);
+        el('lesson-heading').textContent = passed ? 'Module complete!' : 'Almost there!';
+        el('lesson-body').innerHTML = '';
+        const p = document.createElement('p');
+        p.textContent = `You got ${lesson.score} out of ${mod.quiz.length} correct.`;
+        el('lesson-body').appendChild(p);
+        if (passed && lesson.reward) {
+            const r = document.createElement('p');
+            r.className = 'takeaway';
+            r.textContent = lesson.reward;
+            el('lesson-body').appendChild(r);
+        } else if (!passed) {
+            const r = document.createElement('p');
+            r.textContent = `You need ${passScore(mod)} correct to pass. Review the lesson or try the quiz again.`;
+            el('lesson-body').appendChild(r);
+        }
+        prev.textContent = 'Review lesson';
+        next.textContent = passed ? 'Back to map' : 'Try again';
+    }
+
+    if (phase !== 'result') prev.textContent = 'Back';
+}
+
+// hover-to-explore tiles (e.g. the periodic table)
+function renderGrid(items) {
+    const grid = document.createElement('div');
+    grid.className = 'explore-grid';
+    const info = document.createElement('div');
+    info.className = 'lang-info';
+    info.innerHTML = '<p class="small">Hover over (or tap) a tile to learn about it.</p>';
+
+    function showItem(item) {
+        info.innerHTML = '';
+        const h = document.createElement('h4');
+        h.textContent = item.title;
+        info.appendChild(h);
+        if (item.category) {
+            const tag = document.createElement('p');
+            const span = document.createElement('span');
+            span.className = 'tag';
+            span.textContent = item.category;
+            tag.appendChild(span);
+            info.appendChild(tag);
+        }
+        (item.lines || []).forEach(line => {
+            const p = document.createElement('p');
+            p.textContent = line;
+            info.appendChild(p);
+        });
+    }
+
+    items.forEach(item => {
+        const tile = document.createElement('button');
+        tile.className = 'explore-tile' + (item.group ? ' group-' + item.group : '');
+        const num = document.createElement('span');
+        num.className = 'tile-num';
+        num.textContent = item.number ?? '';
+        const label = document.createElement('span');
+        label.className = 'tile-label';
+        label.textContent = item.label;
+        tile.append(num, label);
+        tile.addEventListener('mouseenter', () => showItem(item));
+        tile.addEventListener('focus', () => showItem(item));
+        tile.addEventListener('click', () => {
+            makeSound("click");
+            grid.querySelectorAll('.explore-tile').forEach(t => t.classList.toggle('picked', t === tile));
+            showItem(item);
+        });
+        grid.appendChild(tile);
+    });
+    el('lesson-body').append(grid, info);
+}
+
+// Ask Wolfram box: sends the question to our /api/wolfram function
+function renderWolfram(opts) {
+    const box = document.createElement('div');
+    box.className = 'wolfram-box';
+    box.innerHTML = `
+        <div class="wolfram-row">
+            <input class="wolfram-input" type="text" maxlength="200">
+            <button class="wolfram-ask">Ask</button>
+        </div>
+        <div class="wolfram-examples"></div>
+        <pre class="wolfram-answer hidden"></pre>`;
+    const input = box.querySelector('.wolfram-input');
+    const answer = box.querySelector('.wolfram-answer');
+    input.placeholder = opts.placeholder || 'Ask a question...';
+
+    opts.examples.forEach(ex => {
+        const chip = document.createElement('button');
+        chip.className = 'wolfram-example';
+        chip.textContent = ex;
+        chip.addEventListener('click', () => { input.value = ex; ask(); });
+        box.querySelector('.wolfram-examples').appendChild(chip);
+    });
+
+    async function ask() {
+        const q = input.value.trim();
+        if (!q) return;
+        makeSound("click");
+        answer.classList.remove('hidden');
+        answer.textContent = 'Asking Wolfram|Alpha...';
+        try {
+            const res = await fetch('/api/wolfram?q=' + encodeURIComponent(q));
+            const text = await res.text();
+            // the local Vite server returns the function's source instead of running it
+            const isSource = (res.headers.get('content-type') || '').includes('javascript');
+            if (!res.ok || isSource) throw new Error(text);
+            answer.textContent = cleanWolfram(text);
+        } catch (err) {
+            answer.textContent = "Wolfram couldn't answer that one. Try rephrasing, or try again on the live site.";
+        }
+    }
+    box.querySelector('.wolfram-ask').addEventListener('click', ask);
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') ask(); });
+    el('lesson-body').appendChild(box);
+}
+
+// keep the readable lines of Wolfram's answer and drop image links
+function cleanWolfram(text) {
+    return text.split('\n')
+        .filter(line => !/^(image:|Wolfram\|Alpha website result|Wolfram Language code)/i.test(line.trim()))
+        .filter(line => !line.includes('https://'))
+        .join('\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+}
+
+function answer(i) {
+    if (lesson.answered) return;
+    makeSound("click");
+    const item = lesson.mod.quiz[lesson.step];
+    const correct = i === item.answer;
+    lesson.answered = true;
+    if (correct) lesson.score++;
+    el('lesson-choices').querySelectorAll('.lesson-choice').forEach((btn, j) => {
+        btn.disabled = true;
+        if (j === item.answer) btn.classList.add('correct');
+        else if (j === i) btn.classList.add('wrong');
+    });
+    el('lesson-feedback').textContent = correct
+        ? 'Correct!'
+        : `Not quite. The answer is "${item.choices[item.answer]}".`;
+    el('lesson-next').disabled = false;
+}
+
+async function completeModule() {
+    const { mod } = lesson;
+    const done = profile.completedModules || [];
+    lesson.reward = '';
+    if (done.includes(mod.id)) return;          // XP and pets are only awarded once
+
+    const completedModules = [...done, mod.id];
+    const oldLevel = levelFor(profile.xp || 0);
+    const xp = (profile.xp || 0) + mod.xp;
+    const newLevel = levelFor(xp);
+    const pets = petsForLevel(newLevel);
+    const newPets = PETS.filter(p => pets.includes(p.id) && !petsForLevel(oldLevel).includes(p.id));
+
+    profile = { ...profile, xp, completedModules, pets };
+    lesson.reward = `+${mod.xp} XP`;
+    if (newLevel > oldLevel) lesson.reward += ` · Level up! You're now Level ${newLevel}`;
+    if (newPets.length) lesson.reward += ` · New companion: ${newPets.map(p => p.name).join(', ')}!`;
+    try {
+        await setDoc(doc(db, 'users', auth.currentUser.uid), { xp, completedModules, pets }, { merge: true });
+    } catch (err) {
+        console.error('Saving progress failed:', err.code);
+    }
+}
+
+el('lesson-next').addEventListener('click', async () => {
+    makeSound("click");
+    if (lesson.phase === 'choose') {
+        if (lesson.picked) startLanguage(lesson.picked);
+        return;
+    }
+    const { mod } = lesson;
+    if (lesson.phase === 'read') {
+        if (lesson.step < mod.pages.length - 1) lesson.step++;
+        else Object.assign(lesson, { phase: 'quiz', step: 0, score: 0, answered: false });
+    } else if (lesson.phase === 'quiz') {
+        if (lesson.step < mod.quiz.length - 1) {
+            lesson.step++;
+            lesson.answered = false;
+        } else {
+            lesson.phase = 'result';
+            if (lesson.score >= passScore(lesson.mod)) await completeModule();
+        }
+    } else if (lesson.phase === 'result') {
+        if (lesson.score >= passScore(lesson.mod)) return show('map');
+        Object.assign(lesson, { phase: 'quiz', step: 0, score: 0, answered: false });
+    }
+    renderLesson();
+});
+
+el('lesson-prev').addEventListener('click', () => {
+    makeSound("click");
+    if (lesson.phase === 'read' && lesson.step > 0) lesson.step--;
+    else if (lesson.phase === 'read' && lesson.parent) lesson.phase = 'choose';
+    else if (lesson.phase === 'result') Object.assign(lesson, { phase: 'read', step: 0, score: 0, answered: false });
+    renderLesson();
+});
+
+el('lesson-back').addEventListener('click', () => {
     makeSound("click");
     show('map');
 });
 
 show('login');
+
