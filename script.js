@@ -5,13 +5,14 @@ import { MODULES } from './modules.js';
 
 // Firebase
 const firebaseConfig = {
-    apiKey: "AIzaSyBLOUuFwALvmIGG1s6INn8IFP-jhEAWl98",
-    authDomain: "hackprinceton-2ed81.firebaseapp.com",
-    projectId: "hackprinceton-2ed81",
-    storageBucket: "hackprinceton-2ed81.firebasestorage.app",
-    messagingSenderId: "706200501341",
-    appId: "1:706200501341:web:5de42b658b5e60731921b4"
-  };
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    appId: import.meta.env.VITE_FIREBASE_APP_ID
+};
+if (!firebaseConfig.apiKey) console.error('Missing Firebase settings: add the VITE_FIREBASE_* values to .env.local (local) or to Vercel (live).');
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);  
 const db = getFirestore(app);
@@ -617,7 +618,9 @@ document.querySelectorAll('.book-tab').forEach(tab => {
 });
 
 // ---------- TRACKS ----------
-const TRACK_NAMES = { math: 'Math', cs: 'Computer Science', physics: 'Physics', biology: 'Biology', chemistry: 'Chemistry' };
+const TRACK_NAMES = { math: 'Math', cs: 'Computer Science', physics: 'Physics', biology: 'Biology', chemistry: 'Chemistry', ai: 'My Lessons' };
+// lessons the AI tutor built for this player live in their profile
+const trackModules = (topic) => topic === 'ai' ? (profile.aiLessons || []) : MODULES[topic];
 let currentTrack = null;
 
 document.querySelectorAll('.topic-btn').forEach(btn => {
@@ -648,7 +651,7 @@ function startTrack(topic) {
 }
 
 function openModule(mod) {
-    const mods = MODULES[lesson.topic];
+    const mods = trackModules(lesson.topic);
     el('lesson-track').textContent = `${TRACK_NAMES[lesson.topic]} · Module ${mods.indexOf(mod) + 1}`;
     const base = { topic: lesson.topic, step: 0, score: 0, answered: false };
     lesson = mod.options
@@ -659,6 +662,7 @@ function openModule(mod) {
 
 // module list: finished modules can be replayed, the next one is open, later ones are locked
 function renderOverview() {
+    if (lesson.topic === 'ai') return renderMyLessons();
     const mods = MODULES[lesson.topic];
     const done = profile.completedModules || [];
     const finished = mods.filter(m => isDone(m, done)).length;
@@ -780,6 +784,9 @@ function renderLesson() {
     el('lesson-feedback').textContent = '';
     el('lesson-prev').classList.remove('hidden');
     if (lesson.phase === 'overview') return renderOverview();
+    if (lesson.phase === 'create') return renderCreate();
+    if (lesson.phase === 'building') return renderBuilding();
+    if (lesson.phase === 'built') return renderBuilt();
     if (lesson.phase === 'choose') return renderChooser();
     const { mod, phase, step } = lesson;
     el('lesson-title').textContent = mod.title;
@@ -1078,6 +1085,13 @@ async function completeModule() {
 
 el('lesson-next').addEventListener('click', async () => {
     makeSound("click");
+    if (lesson.phase === 'overview' && lesson.topic === 'ai') {
+        lesson = { topic: 'ai', phase: 'create' };
+        renderLesson();
+        return;
+    }
+    if (lesson.phase === 'create') { buildLesson(); return; }
+    if (lesson.phase === 'built') { openModule(lesson.built); return; }
     if (lesson.phase === 'overview') {
         const mods = MODULES[lesson.topic];
         const next = mods.find(m => !isDone(m, profile.completedModules || []));
@@ -1112,6 +1126,7 @@ el('lesson-prev').addEventListener('click', () => {
     if (lesson.phase === 'read' && lesson.step > 0) lesson.step--;
     else if (lesson.phase === 'read' && lesson.parent) lesson.phase = 'choose';
     else if (lesson.phase === 'read' || lesson.phase === 'choose') lesson = { topic: lesson.topic, phase: 'overview' };
+    else if (lesson.phase === 'create' || lesson.phase === 'built') lesson = { topic: 'ai', phase: 'overview' };
     else if (lesson.phase === 'result') Object.assign(lesson, { phase: 'read', step: 0, score: 0, answered: false });
     renderLesson();
 });
@@ -1119,6 +1134,170 @@ el('lesson-prev').addEventListener('click', () => {
 el('lesson-back').addEventListener('click', () => {
     makeSound("click");
     show('map');
+});
+
+// ---------- AI TUTOR (LangChain deep agent) ----------
+const TOPIC_IDEAS = ['Black holes', 'Recursion', 'Photosynthesis', 'The Pythagorean theorem', 'How vaccines work', 'Machine learning'];
+
+function renderMyLessons() {
+    const lessons = profile.aiLessons || [];
+    const done = profile.completedModules || [];
+    el('lesson-track').textContent = 'My Lessons';
+    el('lesson-title').textContent = 'Lessons built by your AI tutor';
+    el('lesson-progress-fill').style.width = lessons.length ? (lessons.filter(m => done.includes(m.id)).length / lessons.length * 100) + '%' : '0%';
+    el('lesson-heading').textContent = lessons.length ? 'Your lessons' : 'No lessons yet';
+    el('lesson-body').innerHTML = '';
+    if (!lessons.length) {
+        const p = document.createElement('p');
+        p.textContent = 'Pick any topic you are curious about, and the Study Quest tutor will plan, write, quiz and fact-check a lesson just for you.';
+        el('lesson-body').appendChild(p);
+    }
+    const list = document.createElement('div');
+    list.className = 'module-list';
+    lessons.slice().reverse().forEach(mod => {
+        const finished = done.includes(mod.id);
+        const row = document.createElement('button');
+        row.className = 'module-row' + (finished ? ' finished' : ' next');
+        const num = document.createElement('span');
+        num.className = 'module-num';
+        num.textContent = finished ? '✓' : '✦';
+        const text = document.createElement('span');
+        text.className = 'module-text';
+        const title = document.createElement('strong');
+        title.textContent = mod.title;
+        const status = document.createElement('span');
+        status.textContent = finished ? 'Completed · replay anytime' : `New · ${mod.xp} XP`;
+        text.append(title, status);
+        row.append(num, text);
+        row.addEventListener('click', () => { makeSound("click"); openModule(mod); });
+        list.appendChild(row);
+    });
+    el('lesson-body').appendChild(list);
+    el('lesson-prev').classList.add('hidden');
+    el('lesson-next').disabled = false;
+    el('lesson-next').textContent = 'Create a new lesson';
+}
+
+function renderCreate() {
+    el('lesson-track').textContent = 'My Lessons';
+    el('lesson-title').textContent = 'Create a lesson with AI';
+    el('lesson-progress-fill').style.width = '0%';
+    el('lesson-heading').textContent = 'What do you want to learn?';
+    el('lesson-body').innerHTML = `
+        <p>Type any topic. Your AI tutor will <strong>plan</strong> the lesson, have a <strong>writer</strong> draft it, a <strong>quiz maker</strong> write questions, and a <strong>fact checker</strong> verify it with Wolfram|Alpha.</p>
+        <div class="wolfram-row"><input id="tutor-topic" class="wolfram-input" type="text" maxlength="80" placeholder="e.g. black holes"></div>
+        <div class="wolfram-examples" id="tutor-ideas"></div>
+        <p id="tutor-error" class="tutor-error"></p>`;
+    const input = el('tutor-topic');
+    if (lesson.lastTopic) input.value = lesson.lastTopic;
+    if (lesson.error) el('tutor-error').textContent = lesson.error;
+    TOPIC_IDEAS.forEach(idea => {
+        const chip = document.createElement('button');
+        chip.className = 'wolfram-example';
+        chip.textContent = idea;
+        chip.addEventListener('click', () => { input.value = idea; input.focus(); });
+        el('tutor-ideas').appendChild(chip);
+    });
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') buildLesson(); });
+    el('lesson-prev').classList.remove('hidden');
+    el('lesson-prev').disabled = false;
+    el('lesson-prev').textContent = 'Back';
+    el('lesson-next').disabled = false;
+    el('lesson-next').textContent = 'Build my lesson';
+}
+
+// while the agent works, show the kinds of steps it takes (the real log appears when it finishes)
+const BUILD_STEPS = [
+    'Lesson Architect is planning the lesson…',
+    'Writer sub-agent is drafting the pages…',
+    'Quiz maker sub-agent is writing questions…',
+    'Fact checker is verifying facts with Wolfram|Alpha…',
+    'Lesson Architect is applying fixes and saving…',
+];
+let buildTimer = null;
+
+function renderBuilding() {
+    el('lesson-title').textContent = lesson.topic_name;
+    el('lesson-heading').textContent = 'Your AI tutor is building the lesson';
+    el('lesson-body').innerHTML = '<p class="small">This can take a few minutes, so feel free to stay on this screen. The tutor is a LangChain deep agent: it plans, delegates to sub-agents, and checks its own work.</p><ul class="agent-log" id="agent-log"></ul>';
+    BUILD_STEPS.forEach((text, i) => {
+        const li = document.createElement('li');
+        li.textContent = text;
+        li.className = i < lesson.buildStep ? 'done' : i === lesson.buildStep ? 'active' : '';
+        el('agent-log').appendChild(li);
+    });
+    el('lesson-progress-fill').style.width = ((lesson.buildStep + 1) / (BUILD_STEPS.length + 1) * 100) + '%';
+    el('lesson-prev').classList.add('hidden');
+    el('lesson-next').disabled = true;
+    el('lesson-next').textContent = 'Building…';
+}
+
+async function buildLesson() {
+    const topic = (el('tutor-topic')?.value || '').trim();
+    if (topic.length < 2) { el('tutor-error').textContent = 'Type a topic first.'; return; }
+    makeSound("click");
+    lesson = { topic: 'ai', phase: 'building', topic_name: topic, buildStep: 0 };
+    renderLesson();
+    clearInterval(buildTimer);
+    buildTimer = setInterval(() => {
+        if (lesson.phase !== 'building') return clearInterval(buildTimer);
+        if (lesson.buildStep < BUILD_STEPS.length - 1) { lesson.buildStep++; renderBuilding(); }
+    }, 12000);
+
+    try {
+        const res = await fetch('/api/tutor', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ topic }),
+        });
+        const isSource = (res.headers.get('content-type') || '').includes('javascript');
+        const data = isSource ? null : await res.json().catch(() => null);
+        if (!res.ok || !data?.module) throw new Error(data?.error || 'The AI tutor only runs on the live site.');
+        clearInterval(buildTimer);
+
+        const mod = { ...data.module, id: 'ai-' + Date.now() };
+        const aiLessons = [...(profile.aiLessons || []), mod].slice(-10);   // keep the 10 most recent
+        profile = { ...profile, aiLessons };
+        if (auth.currentUser) {
+            setDoc(doc(db, 'users', auth.currentUser.uid), { aiLessons }, { merge: true })
+                .catch(err => console.error('Saving lesson failed:', err.code));
+        }
+        lesson = { topic: 'ai', phase: 'built', built: mod, todos: data.todos || [], steps: data.steps || [] };
+        renderLesson();
+    } catch (err) {
+        clearInterval(buildTimer);
+        lesson = { topic: 'ai', phase: 'create', lastTopic: topic, error: err.message };
+        renderLesson();
+    }
+}
+
+function renderBuilt() {
+    el('lesson-title').textContent = lesson.built.title;
+    el('lesson-heading').textContent = 'Your lesson is ready!';
+    el('lesson-progress-fill').style.width = '100%';
+    el('lesson-body').innerHTML = '<p>Here is what your AI tutor did:</p><ul class="agent-log" id="agent-log"></ul>';
+    const items = [
+        ...lesson.todos.map(t => ({ text: t.text, cls: t.status === 'completed' ? 'done' : '' })),
+        ...lesson.steps.filter(s => s.type !== 'plan').map(s => ({ text: s.text, cls: 'done ' + s.type })),
+    ];
+    (items.length ? items : [{ text: 'Planned, wrote, quizzed and fact-checked your lesson', cls: 'done' }]).forEach(item => {
+        const li = document.createElement('li');
+        li.textContent = item.text;
+        li.className = item.cls;
+        el('agent-log').appendChild(li);
+    });
+    el('lesson-prev').classList.remove('hidden');
+    el('lesson-prev').disabled = false;
+    el('lesson-prev').textContent = 'My lessons';
+    el('lesson-next').disabled = false;
+    el('lesson-next').textContent = 'Start lesson';
+}
+
+document.getElementById('create-lesson-btn').addEventListener('click', () => {
+    makeSound("click");
+    lesson = { topic: 'ai', phase: 'overview' };
+    show('lesson');
+    renderLesson();
 });
 
 show('login');

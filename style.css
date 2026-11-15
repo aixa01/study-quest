@@ -1013,3 +1013,32 @@ button.code-line:disabled { cursor: default; }
 .module-text { display: flex; flex-direction: column; }
 .module-text strong { font-family: "Pixelify Sans", sans-serif; font-weight: normal; font-size: 1.05rem; }
 .module-text span { font-size: 0.8rem; opacity: 0.85; }
+
+/* ---------- AI TUTOR ---------- */
+.create-lesson-btn {
+    margin-top: 0.8rem;
+    font-family: "Pixelify Sans", sans-serif;
+    font-size: 1rem;
+    color: #5a3b2e;
+    background: rgba(255, 255, 255, 0.5);
+    border: 2px dashed #a0522d;
+    padding: 0.45rem 1rem;
+    cursor: pointer;
+}
+.create-lesson-btn:hover { background: #ffe9a0; border-style: solid; }
+.tutor-error { color: #a33a2a; font-weight: bold; min-height: 1.2em; }
+.tutor-error:empty { display: none; }
+.agent-log { list-style: none; padding: 0; margin: 0.5rem 0 0; }
+.agent-log li {
+    position: relative;
+    padding: 0.35rem 0 0.35rem 1.8rem;
+    border-bottom: 1px dashed rgba(90, 59, 46, 0.25);
+    opacity: 0.5;
+}
+.agent-log li::before { content: '○'; position: absolute; left: 0.3rem; color: #a0522d; }
+.agent-log li.active { opacity: 1; font-weight: bold; }
+.agent-log li.active::before { content: '◐'; animation: spin 1s linear infinite; display: inline-block; }
+.agent-log li.done { opacity: 1; }
+.agent-log li.done::before { content: '✓'; color: #3c7a2a; }
+.agent-log li.wolfram::before { content: '✦'; color: #d35400; }
+@keyframes spin { to { transform: rotate(360deg); } }
