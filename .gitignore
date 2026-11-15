@@ -1,6 +1,6 @@
 node_modules
 dist
 .env
-.env.localcd ~/Downloads/HackPrinceton npx vite 
+.env.local
 .vercel
 .DS_Store
