@@ -978,3 +978,38 @@ button.code-line:disabled { cursor: default; }
 }
 .code-blank.filled { background: rgba(120, 200, 100, 0.3); border-bottom-style: solid; color: #b8e0a0; }
 .lesson-choice.code-choice { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+
+/* ---------- TRACK MODULE LIST ---------- */
+.module-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.module-row {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    width: 100%;
+    text-align: left;
+    padding: 0.55rem 0.8rem;
+    border: 2px solid #5a3b2e;
+    background: rgba(255, 255, 255, 0.45);
+    color: #5a3b2e;
+    font-family: "Noto Serif", serif;
+    cursor: pointer;
+}
+.module-row:hover:not(:disabled) { background: rgba(255, 233, 160, 0.9); }
+.module-row.next { background: #f3d27a; box-shadow: inset 0 0 0 2px #a0522d; }
+.module-row.finished .module-num { background: #b8e0a0; border-color: #3c7a2a; color: #2c5a1e; }
+.module-row.locked { opacity: 0.5; cursor: default; }
+.module-num {
+    flex-shrink: 0;
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #5a3b2e;
+    background: rgba(255, 255, 255, 0.7);
+    font-family: "Pixelify Sans", sans-serif;
+    font-size: 1.1rem;
+}
+.module-text { display: flex; flex-direction: column; }
+.module-text strong { font-family: "Pixelify Sans", sans-serif; font-weight: normal; font-size: 1.05rem; }
+.module-text span { font-size: 0.8rem; opacity: 0.85; }

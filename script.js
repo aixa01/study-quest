@@ -512,14 +512,18 @@ const PETS = [
     { id: 'capybara', name: 'Capybara' },
     { id: 'duck',     name: 'Duck' },
     { id: 'chicken',  name: 'Chicken' },
+    { id: 'hedgehog', name: 'Hedgehog' },
     { id: 'squirrel', name: 'Squirrel' },
+    { id: 'pig',      name: 'Pig' },
     { id: 'rat',      name: 'Rat' },
+    { id: 'dog',      name: 'Dog' },
     { id: 'monkey',   name: 'Monkey' },
     { id: 'alpaca',   name: 'Alpaca' },
     { id: 'goat',     name: 'Goat' },
     { id: 'seal',     name: 'Seal' },
     { id: 'kangaroo', name: 'Kangaroo' },
     { id: 'panda',    name: 'Panda' },
+    { id: 'lion',     name: 'Lion' },
     { id: 'tiger',    name: 'Tiger' },
 ];
 
@@ -636,19 +640,63 @@ let lesson = null;                    // { topic, mod, phase, step, score, answe
 const isDone = (mod, done) =>
     done.includes(mod.id) || (mod.options && done.some(id => id.startsWith(mod.id + '-')));
 
+// picking a track opens its module list first
 function startTrack(topic) {
-    const done = profile.completedModules || [];
-    const mods = MODULES[topic];
-    // next unfinished module, or replay the last one if all are done
-    const mod = mods.find(m => !isDone(m, done)) || mods[mods.length - 1];
-    el('lesson-track').textContent = `${TRACK_NAMES[topic]} · Module ${mods.indexOf(mod) + 1}`;
-    if (mod.options) {
-        lesson = { topic, parent: mod, mod: null, phase: 'choose', picked: null, step: 0, score: 0, answered: false };
-    } else {
-        lesson = { topic, mod, phase: 'read', step: 0, score: 0, answered: false };
-    }
+    lesson = { topic, phase: 'overview' };
     show('lesson');
     renderLesson();
+}
+
+function openModule(mod) {
+    const mods = MODULES[lesson.topic];
+    el('lesson-track').textContent = `${TRACK_NAMES[lesson.topic]} · Module ${mods.indexOf(mod) + 1}`;
+    const base = { topic: lesson.topic, step: 0, score: 0, answered: false };
+    lesson = mod.options
+        ? { ...base, parent: mod, mod: null, phase: 'choose', picked: null }
+        : { ...base, mod, phase: 'read' };
+    renderLesson();
+}
+
+// module list: finished modules can be replayed, the next one is open, later ones are locked
+function renderOverview() {
+    const mods = MODULES[lesson.topic];
+    const done = profile.completedModules || [];
+    const finished = mods.filter(m => isDone(m, done)).length;
+    const nextIndex = mods.findIndex(m => !isDone(m, done));
+    el('lesson-track').textContent = `${TRACK_NAMES[lesson.topic]} track`;
+    el('lesson-title').textContent = `${finished} of ${mods.length} modules complete`;
+    el('lesson-progress-fill').style.width = (finished / mods.length * 100) + '%';
+    el('lesson-heading').textContent = 'Modules';
+    const list = document.createElement('div');
+    list.className = 'module-list';
+    mods.forEach((mod, i) => {
+        const isFinished = isDone(mod, done);
+        const isNext = i === nextIndex;
+        const row = document.createElement('button');
+        row.className = 'module-row' + (isFinished ? ' finished' : isNext ? ' next' : ' locked');
+        row.disabled = !isFinished && !isNext;
+        const num = document.createElement('span');
+        num.className = 'module-num';
+        num.textContent = isFinished ? '✓' : i + 1;
+        const text = document.createElement('span');
+        text.className = 'module-text';
+        const title = document.createElement('strong');
+        title.textContent = mod.title;
+        const status = document.createElement('span');
+        status.textContent = isFinished ? 'Completed · replay anytime'
+            : isNext ? `Up next · ${mod.xp} XP`
+            : `Locked · finish Module ${i} first`;
+        text.append(title, status);
+        row.append(num, text);
+        row.addEventListener('click', () => { makeSound("click"); openModule(mod); });
+        list.appendChild(row);
+    });
+    el('lesson-body').innerHTML = '';
+    el('lesson-body').appendChild(list);
+    el('lesson-prev').classList.add('hidden');
+    el('lesson-next').disabled = false;
+    el('lesson-next').textContent = nextIndex === -1 ? 'Track complete!' : 'Continue';
+    el('lesson-next').disabled = nextIndex === -1;
 }
 
 // turn a picked option into a normal lesson module (its own id, so each option awards XP once)
@@ -721,7 +769,8 @@ function renderChooser() {
     });
     if (lesson.picked) showInfo(lesson.picked);
 
-    el('lesson-prev').classList.add('hidden');
+    el('lesson-prev').disabled = false;
+    el('lesson-prev').textContent = 'Back';
     el('lesson-next').disabled = !lesson.picked;
     el('lesson-next').textContent = lesson.picked ? `${parent.pickVerb} ${lesson.picked.name}` : 'Pick one';
 }
@@ -730,6 +779,7 @@ function renderLesson() {
     el('lesson-choices').innerHTML = '';
     el('lesson-feedback').textContent = '';
     el('lesson-prev').classList.remove('hidden');
+    if (lesson.phase === 'overview') return renderOverview();
     if (lesson.phase === 'choose') return renderChooser();
     const { mod, phase, step } = lesson;
     el('lesson-title').textContent = mod.title;
@@ -750,7 +800,7 @@ function renderLesson() {
         el('lesson-body').innerHTML = page.body;
         if (page.grid) renderGrid(page.grid);
         if (page.wolfram) renderWolfram(page.wolfram);
-        prev.disabled = step === 0 && !lesson.parent;
+        prev.disabled = false;   // on page 1, Back returns to the module list (or the picker)
         next.textContent = step === mod.pages.length - 1 ? 'Start quiz' : 'Next';
     }
 
@@ -1028,6 +1078,12 @@ async function completeModule() {
 
 el('lesson-next').addEventListener('click', async () => {
     makeSound("click");
+    if (lesson.phase === 'overview') {
+        const mods = MODULES[lesson.topic];
+        const next = mods.find(m => !isDone(m, profile.completedModules || []));
+        if (next) openModule(next);
+        return;
+    }
     if (lesson.phase === 'choose') {
         if (lesson.picked) startLanguage(lesson.picked);
         return;
@@ -1055,6 +1111,7 @@ el('lesson-prev').addEventListener('click', () => {
     makeSound("click");
     if (lesson.phase === 'read' && lesson.step > 0) lesson.step--;
     else if (lesson.phase === 'read' && lesson.parent) lesson.phase = 'choose';
+    else if (lesson.phase === 'read' || lesson.phase === 'choose') lesson = { topic: lesson.topic, phase: 'overview' };
     else if (lesson.phase === 'result') Object.assign(lesson, { phase: 'read', step: 0, score: 0, answered: false });
     renderLesson();
 });
@@ -1065,6 +1122,7 @@ el('lesson-back').addEventListener('click', () => {
 });
 
 show('login');
+
 
 
 
