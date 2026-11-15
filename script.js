@@ -1252,7 +1252,9 @@ async function buildLesson() {
         });
         const isSource = (res.headers.get('content-type') || '').includes('javascript');
         const data = isSource ? null : await res.json().catch(() => null);
-        if (!res.ok || !data?.module) throw new Error(data?.error || 'The AI tutor only runs on the live site.');
+        if (!res.ok || !data?.module) throw new Error(data?.error || (location.hostname === 'localhost'
+            ? 'The AI tutor only runs on the live site.'
+            : 'The AI tutor is unavailable right now. Please try again later.'));
         clearInterval(buildTimer);
 
         const mod = { ...data.module, id: 'ai-' + Date.now() };
