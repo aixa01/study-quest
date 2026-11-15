@@ -15,7 +15,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);  
 const db = getFirestore(app);
-const APP_NAME = 'HackPrinceton';
+const APP_NAME = 'Study Quest';   // also update <title> in index.html
 document.querySelectorAll('.app-name').forEach(el => el.textContent = APP_NAME);
 
 // Background Music
@@ -176,7 +176,7 @@ const introLines = [
     "Everything we know about our world began with a question.",
     "With knowledge, we came to understand the Earth, and then we used it to build, invent, and move forward.",
     "But the world still has room to grow. And it grows stronger with every person who learns.",
-    "Here, you'll explore topics like math and computer science by visiting different places and meeting new characters.",
+    "Here, you'll explore various STEM topics by engaging with modules through interactive learning.",
     "Spend time on a module to earn XP. Earn enough, and you'll level up. Every time you level up, a new pet companion will join you on your journey.",
     "Ready to help the world grow? First, tell us who you are..."
 ];
@@ -263,6 +263,8 @@ document.getElementById('login-btn').addEventListener('click', async () => {
             await setDoc(doc(db, 'users', auth.currentUser.uid), { joinedAt: profile.joinedAt }, { merge: true });
         }
         if (profile.character) { character = profile.character; for (const key in LAYERS) applyLayer(key); }
+        await updateStreak();
+        checkAchievements();
 
         if (snap.exists() && snap.data().name) {
             document.getElementById('welcome-text').textContent =
@@ -298,6 +300,7 @@ document.getElementById('name-next').addEventListener('click', async () => {
     const newData = { name, joinedAt: new Date().toISOString(), xp: 0, completedModules: [], pets: [] };
     await setDoc(doc(db, 'users', auth.currentUser.uid), newData, { merge: true });
     profile = { ...profile, ...newData };
+    checkAchievements();
     flow = ['creator', 'map'];
     pos = 0; furthest = 0;
     goTo('creator');
@@ -389,6 +392,109 @@ document.addEventListener('click', (e) => {
     if (!document.getElementById('menu').contains(e.target)) closeMenu();
 });
 
+// ---------- STREAKS & ACHIEVEMENTS ----------
+// A streak counts days in a row with at least one visit (local time).
+const dayKey = (d = new Date()) => d.toLocaleDateString('en-CA');   // YYYY-MM-DD
+
+async function updateStreak() {
+    if (!auth.currentUser) return;
+    const today = dayKey();
+    if (profile.lastActive === today) return;
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const streak = profile.lastActive === dayKey(yesterday) ? (profile.streak || 0) + 1 : 1;
+    const bestStreak = Math.max(streak, profile.bestStreak || 0);
+    profile = { ...profile, lastActive: today, streak, bestStreak };
+    try {
+        await setDoc(doc(db, 'users', auth.currentUser.uid), { lastActive: today, streak, bestStreak }, { merge: true });
+    } catch (err) {
+        console.error('Saving streak failed:', err.code);
+    }
+}
+
+const trackDone = (topic) => MODULES[topic].every(m => isDone(m, profile.completedModules || []));
+
+const ACHIEVEMENTS = [
+    { id: 'first-day',      name: 'Day One',          desc: 'Start your Study Quest adventure.',   check: () => !!profile.name },
+    { id: 'first-module',   name: 'First Lesson',     desc: 'Complete your first module.',         check: () => (profile.completedModules || []).length >= 1 },
+    { id: 'first-pet',      name: 'New Best Friend',  desc: 'Unlock your first pet companion.',    check: () => petsForLevel(levelFor(profile.xp || 0)).length >= 1 },
+    { id: 'streak-3',       name: 'On a Roll',        desc: 'Study 3 days in a row.',              check: () => (profile.bestStreak || 0) >= 3 },
+    { id: 'streak-7',       name: 'Week Warrior',     desc: 'Study 7 days in a row.',              check: () => (profile.bestStreak || 0) >= 7 },
+    { id: 'streak-30',      name: 'Unstoppable',      desc: 'Study 30 days in a row.',             check: () => (profile.bestStreak || 0) >= 30 },
+    { id: 'track-math',     name: 'Math Master',      desc: 'Complete every Math module.',         check: () => trackDone('math') },
+    { id: 'track-cs',       name: 'Code Champion',    desc: 'Complete every Computer Science module.', check: () => trackDone('cs') },
+    { id: 'track-physics',  name: 'Physics Pro',      desc: 'Complete every Physics module.',      check: () => trackDone('physics') },
+    { id: 'track-biology',  name: 'Biology Buff',     desc: 'Complete every Biology module.',      check: () => trackDone('biology') },
+    { id: 'track-chemistry',name: 'Chemistry Whiz',   desc: 'Complete every Chemistry module.',    check: () => trackDone('chemistry') },
+];
+
+// unlock anything newly earned, save it, and announce it
+async function checkAchievements() {
+    if (!auth.currentUser) return;
+    const owned = profile.achievements || {};
+    const fresh = ACHIEVEMENTS.filter(a => !owned[a.id] && a.check());
+    if (!fresh.length) return;
+    const achievements = { ...owned };
+    fresh.forEach(a => { achievements[a.id] = new Date().toISOString(); });
+    profile = { ...profile, achievements };
+    fresh.forEach(a => showToast(a));
+    try {
+        await setDoc(doc(db, 'users', auth.currentUser.uid), { achievements }, { merge: true });
+    } catch (err) {
+        console.error('Saving achievements failed:', err.code);
+    }
+}
+
+// pop-ups appear one at a time
+const toastQueue = [];
+let toastBusy = false;
+function showToast(a) {
+    toastQueue.push(a);
+    if (!toastBusy) nextToast();
+}
+function nextToast() {
+    const a = toastQueue.shift();
+    if (!a) { toastBusy = false; return; }
+    toastBusy = true;
+    const toast = el('achievement-toast');
+    el('toast-name').textContent = a.name;
+    el('toast-desc').textContent = a.desc;
+    toast.classList.remove('hidden', 'leaving');
+    setTimeout(() => toast.classList.add('leaving'), 3200);
+    setTimeout(() => { toast.classList.add('hidden'); nextToast(); }, 3600);
+}
+
+function renderAchievements() {
+    const owned = profile.achievements || {};
+    el('ach-count').textContent = `${Object.keys(owned).filter(id => ACHIEVEMENTS.some(a => a.id === id)).length} / ${ACHIEVEMENTS.length} unlocked`;
+    // a streak only counts as current if you visited today or yesterday
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const current = [dayKey(), dayKey(yesterday)].includes(profile.lastActive) ? (profile.streak || 0) : 0;
+    el('ach-streak').textContent = current;
+    el('ach-best').textContent = profile.bestStreak || 0;
+
+    const list = el('ach-list');
+    list.innerHTML = '';
+    ACHIEVEMENTS.forEach(a => {
+        const row = document.createElement('div');
+        row.className = 'ach-row' + (owned[a.id] ? '' : ' locked');
+        const icon = document.createElement('img');
+        icon.src = '/images/ui/UI_TravelBook_IconStar01a.png';
+        icon.alt = '';
+        const text = document.createElement('div');
+        const name = document.createElement('strong');
+        name.textContent = a.name;
+        const desc = document.createElement('span');
+        desc.textContent = owned[a.id]
+            ? `${a.desc} Unlocked ${new Date(owned[a.id]).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}.`
+            : a.desc;
+        text.append(name, desc);
+        row.append(icon, text);
+        list.appendChild(row);
+    });
+}
+
 // ---------- LEARNING LOG ----------
 // One new pet per level: PETS[0] joins at Level 2, PETS[1] at Level 3, and so on.
 // Sprites live in public/images/pets/<id>/0.png and 1.png (two-frame idle animation).
@@ -455,6 +561,8 @@ function renderLog() {
     }
   
     // settings sliders show saved values
+    renderAchievements();
+
     document.getElementById('music-vol').value = settings.music;
     document.getElementById('sfx-vol').value = settings.sfx;
 }
@@ -824,6 +932,7 @@ async function completeModule() {
     } catch (err) {
         console.error('Saving progress failed:', err.code);
     }
+    checkAchievements();
 }
 
 el('lesson-next').addEventListener('click', async () => {
@@ -865,4 +974,5 @@ el('lesson-back').addEventListener('click', () => {
 });
 
 show('login');
+
 

@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8"/>
         <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-        <title>HackPrinceton</title>
+        <title>Study Quest</title>
         <link rel="stylesheet" href="/style.css">
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -84,9 +84,16 @@
                     <div id="tab-achievements" class="book-page hidden">
                         <div class="page left">
                             <h3>Achievements</h3>
-                            <p>Coming soon...</p>
+                            <p id="ach-count" class="small"></p>
+                            <div class="streak-box">
+                                <div><span id="ach-streak" class="streak-num">0</span><span class="small">day streak</span></div>
+                                <div><span id="ach-best" class="streak-num">0</span><span class="small">best streak</span></div>
+                            </div>
+                            <p class="small">Visit on back-to-back days to grow your streak. Miss a day and it starts over, but your best streak is saved!</p>
                         </div>
-                        <div class="page right"></div>
+                        <div class="page right">
+                            <div id="ach-list" class="ach-list"></div>
+                        </div>
                     </div>
         
                     <div id="tab-settings" class="book-page hidden">
@@ -110,20 +117,22 @@
         <div id="about-panel" class="panel-backdrop hidden">
             <div class="panel">
                 <button class="icon-btn btn-close panel-close" aria-label="Close"></button>
-
                 <h2>What is <span class="app-name"></span>?</h2>
-                <p><span class="app-name"></span> is an application that provides a gamified STEM learning experience. You explore a world where you earn XP, level up, and collect pet companions as you learn.</p>
-
+                <p><span class="app-name"></span> turns STEM learning into an adventure. Choose from five tracks, Math, Computer Science, Physics, Biology, and Chemistry, and work through short modules that build from "what is this subject?" to the equations and ideas behind it, and finally to how it shows up in the real world. Every quiz you pass earns XP, every level brings a new pet companion, and your Learning Log keeps track of how far you've come.</p>
                 <h3>Who is this for?</h3>
-                <p><span class="app-name"></span> was made with students in mind, but anyone can use it! Learning can sometimes feel challenging, and research suggests that learning actively through gamification can make the process easier.</p>
-                <p>Growing up, and even in college, I struggled with learning certain topics and making them stick. <span class="app-name"></span> is meant for supplementary learning alongside your main studies, to reinforce what you already know or introduce something new.</p>
-
+                <p>Anyone curious, but especially students. Research shows people learn better when they actively take part, so instead of reading passively, you answer questions, get instant feedback, explore interactive tools, and see your progress grow.</p>
+                <h3>Why I built it</h3>
+                <p>Growing up, and even now in college, I've struggled to make certain topics stick. I wanted a place to review what I'd learned in class, or get a head start on something new, that felt less like homework and more like a game. <span class="app-name"></span> isn't meant to replace your classes. It's a companion to them. Here, students can learn for the sake of enjoyment, without the pressure of grades or the fear of getting something wrong.</p>
                 <h3>How it was built</h3>
-                <p><strong>Tech stack:</strong> HTML, CSS, JavaScript, Vite, Firebase Authentication (Google sign-in), Cloud Firestore, and the Wolfram|Alpha API.</p>
-                <p><span class="app-name"></span> was built independently during HackPrinceton Fall 2026.</p>
-
+                <p>I built <span class="app-name"></span> on my own during HackPrinceton Fall 2026.</p>
+                <ul class="why-list">
+                    <li><strong>Frontend:</strong> HTML, CSS, and JavaScript, bundled with Vite</li>
+                    <li><strong>Accounts &amp; saving:</strong> Firebase Authentication (Google sign-in) and Cloud Firestore</li>
+                    <li><strong>Live answers:</strong> the Wolfram|Alpha API, through a Vercel serverless function</li>
+                    <li><strong>Hosting:</strong> Vercel</li>
+                </ul>
                 <h3>About me</h3>
-                <p>I'm a second-year student at the Community College of Philadelphia. In my free time, I enjoy cooking for my family and myself.</p>
+                <p>I'm a second-year student at the Community College of Philadelphia. When I'm not coding or studying, I'm usually in the kitchen making something for my family and myself. One of my favorite things to make is a Vietnamese coffee tiramisu.</p>
             </div>
         </div>
 
@@ -180,7 +189,7 @@
             </div>
 
             <div class="login-card">
-                <h1>HackPrinceton</h1>
+                <h1 class="app-name">Study Quest</h1>
                 <button id="login-btn" class="pixel-btn">Sign in with Google</button>
             </div>
 
@@ -204,7 +213,7 @@
             </div>
 
             <div id="textbox" class="textbox">
-                <p class="speaker">Textbook</p>
+                <p class="speaker app-name">Study Quest</p>
                 <p id="intro-text"></p>
                 <span class="hint">Click to Continue</span>
             </div>
@@ -214,7 +223,7 @@
 
         <section id="name" class="hidden">
             <div class="textbox">
-                <p class="speaker">Textbook</p>
+                <p class="speaker app-name">Study Quest</p>
                 <p>Welcome! What is your name?</p>
                 <input id="name-input" placeholder="Type your name" maxLength="20"/>
                 <button id="name-next" class="pixel-btn">Next</button>
@@ -229,7 +238,7 @@
                 <div class="layer" style="--img:url('/images/mountain4.png'); --speed:80s"></div>
             </div>
             <div class="textbox">
-                <p class="speaker">Textbook</p>
+                <p class="speaker app-name">Study Quest</p>
                 <p id="welcome-text"></p>
                 <button id="continue-btn" class="pixel-btn">Continue</button>
             </div>
@@ -267,7 +276,7 @@
 
             <div class="map-content">
                 <div class="track-popup">
-                    <p class="speaker">Textbook</p>
+                    <p class="speaker app-name">Study Quest</p>
                     <h2>Which track would you like to explore today?</h2>
                     <div class="topic-list">
                         <button class="pixel-btn topic-btn" data-topic="math">Math</button>
@@ -305,6 +314,14 @@
             </div>
         </section>
 
+        <div id="achievement-toast" class="achievement-toast hidden" role="status">
+            <img src="/images/ui/UI_TravelBook_IconStar01a.png" alt="">
+            <div>
+                <p class="toast-label">Achievement unlocked!</p>
+                <p id="toast-name" class="toast-name"></p>
+                <p id="toast-desc" class="toast-desc"></p>
+            </div>
+        </div>
         <script type="module" src="/script.js"></script>
     </body>
 </html>
