@@ -851,3 +851,9 @@ body {
     max-height: 12rem;
     overflow-y: auto;
 }
+
+/* Why Gamify Learning panel */
+.panel h3 { color: #f5e6b8; margin-bottom: 0.4rem; }
+.panel .ref { font-size: 0.85rem; opacity: 0.8; font-style: italic; }
+.panel .ref a { color: #ffd34d; }
+.panel .why-list { padding-left: 1.2rem; line-height: 1.6; }
