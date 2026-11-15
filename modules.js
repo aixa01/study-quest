@@ -317,6 +317,91 @@ export const MODULES = {
                     answer: 3
                 }
             ]
+        },
+        {
+            id: 'math-5',
+            title: 'Math Problem Solver',
+            xp: 50,
+            pages: [
+                {
+                    heading: 'A 4-step method',
+                    body: `<p>In 1945, mathematician George Pólya wrote <em>How to Solve It</em>, and his four steps still work for almost any math problem:</p>
+                           <ol>
+                             <li><strong>Understand:</strong> what do you know, and what are you trying to find?</li>
+                             <li><strong>Plan:</strong> pick a strategy, like writing an equation, drawing a picture, or working backward</li>
+                             <li><strong>Solve:</strong> carry out the plan step by step</li>
+                             <li><strong>Look back:</strong> does the answer make sense in the real situation?</li>
+                           </ol>`
+                },
+                {
+                    heading: 'Worked problem 1: algebra',
+                    body: `<p><em>Movie tickets cost $12 each, and you buy one $5 popcorn. You have $50. How many tickets can you buy?</em></p>
+                           <ul>
+                             <li><strong>Understand:</strong> total spending must be at most $50; find the number of tickets, <em>t</em></li>
+                             <li><strong>Plan:</strong> write an equation</li>
+                           </ul>
+                           <p class="eq">12t + 5 = 50 → 12t = 45 → t = 3.75</p>
+                           <ul>
+                             <li><strong>Look back:</strong> you can't buy three-quarters of a ticket! The real answer is <strong>3 tickets</strong> (that's $41, with $9 left over).</li>
+                           </ul>`
+                },
+                {
+                    heading: 'Worked problem 2: percents',
+                    body: `<p><em>A jacket costs $80. It's 25% off, then 8% sales tax is added. What do you pay?</em></p>
+                           <ul>
+                             <li><strong>Plan:</strong> apply the discount first, then the tax</li>
+                           </ul>
+                           <p class="eq">80 × 0.75 = $60 &nbsp; → &nbsp; 60 × 1.08 = $64.80</p>
+                           <ul>
+                             <li><strong>Trick:</strong> "25% off" means you pay 75%, so multiply by 0.75. "Add 8%" means multiply by 1.08.</li>
+                             <li><strong>Look back:</strong> less than $80 but more than $60 ✓</li>
+                           </ul>`
+                },
+                {
+                    heading: 'Worked problem 3: geometry',
+                    body: `<p><em>A 10-foot ladder leans against a wall. Its base is 6 feet from the wall. How high up the wall does it reach?</em></p>
+                           <ul>
+                             <li><strong>Plan:</strong> draw it! The wall, ground, and ladder form a right triangle, and the ladder is the longest side.</li>
+                           </ul>
+                           <p class="eq">6² + h² = 10² → 36 + h² = 100 → h² = 64 → h = 8 ft</p>
+                           <ul>
+                             <li><strong>Look back:</strong> the height should be less than the ladder's length ✓</li>
+                           </ul>`
+                },
+                {
+                    heading: 'Worked problem 4: probability',
+                    body: `<p><strong>Probability</strong> = favorable outcomes ÷ total outcomes.</p>
+                           <p><em>What's the chance of rolling an even number on a six-sided die?</em></p>
+                           <p class="eq">{2, 4, 6} → 3 ÷ 6 = ½ = 50%</p>
+                           <p><em>What's the chance of flipping two coins and getting two heads?</em> For independent events, multiply:</p>
+                           <p class="eq">½ × ½ = ¼ = 25%</p>`
+                },
+                {
+                    heading: 'Ask Wolfram|Alpha',
+                    body: `<p>Check your own math with <strong>Wolfram|Alpha</strong>. It can solve equations, take derivatives, and much more. Try an example or type your own:</p>`,
+                    wolfram: {
+                        placeholder: 'e.g. solve 2x^2 - 8 = 0',
+                        examples: [
+                            'solve 3x + 7 = 22',
+                            '25% of 80',
+                            'derivative of x^3 + 2x',
+                            'integrate x^2 from 0 to 3'
+                        ]
+                    }
+                },
+                {
+                    heading: 'Key takeaway',
+                    body: `<p class="takeaway">Understand → Plan → Solve → Look back. And always ask whether your answer makes sense in the real world.</p>
+                           <p>Now it's your turn. The quiz is all problems to solve!</p>`
+                }
+            ],
+            quiz: [
+                { q: 'Solve for x: 3x + 7 = 22', choices: ['x = 5', 'x = 7', 'x = 9.67', 'x = 15'], answer: 0 },
+                { q: 'A $40 shirt is 20% off. What is the sale price?', choices: ['$20', '$38', '$32', '$8'], answer: 2 },
+                { q: 'A right triangle has legs of 5 and 12. How long is the longest side?', choices: ['17', '13', '60', '7'], answer: 1 },
+                { q: 'What is the probability of drawing a heart from a standard 52-card deck?', choices: ['1/13', '1/2', '1/52', '1/4'], answer: 3 },
+                { q: 'A rectangle has an area of 48 and a width of 6. What is its perimeter?', choices: ['28', '14', '54', '96'], answer: 0 }
+            ]
         }
     ],
 
@@ -633,6 +718,126 @@ capy.speak()   # Capybara says hi!</pre>
             pickVerb: 'Learn',
             infoHeading: 'Used for:',
             options: LANGUAGES
+        },
+        {
+            id: 'cs-5',
+            title: 'Debug It!',
+            xp: 50,
+            pages: [
+                {
+                    heading: 'Bugs happen to everyone',
+                    body: `<p>A <strong>bug</strong> is a mistake in code. Even expert programmers write bugs every day. What makes them experts is how quickly they <strong>find and fix</strong> them. That skill is called <strong>debugging</strong>.</p>
+                           <p>The term became famous in 1947, when Grace Hopper's team found a real moth stuck in their computer and taped it into their logbook as the "first actual case of bug being found."</p>`
+                },
+                {
+                    heading: 'Three kinds of errors',
+                    body: `<ul>
+                             <li><strong>Syntax errors:</strong> the code breaks the language's grammar rules, like a missing colon or quote. The program won't run at all.</li>
+                             <li><strong>Runtime errors:</strong> the code starts running, then crashes, like dividing by zero or using a variable that doesn't exist.</li>
+                             <li><strong>Logic errors:</strong> the code runs without crashing but gives the <em>wrong answer</em>. These are the sneakiest, because nothing warns you.</li>
+                           </ul>`
+                },
+                {
+                    heading: 'Read the error message',
+                    body: `<p>When code fails, the language usually tells you <strong>what</strong> went wrong and <strong>where</strong>:</p>
+                           <pre class="code">  File "main.py", line 1
+    def greet(name)
+                   ^
+SyntaxError: expected ':'</pre>
+                           <p>This says: in <strong>main.py</strong>, on <strong>line 1</strong>, a colon <code>:</code> is missing where the arrow points.</p>
+                           <p><strong>Tip:</strong> the real mistake is sometimes on the line just <em>before</em> the one the error points to, like a missing quote or bracket that "spills over."</p>`
+                },
+                {
+                    heading: 'Usual suspects',
+                    body: `<p>Check these first. They cause most beginner bugs:</p>
+                           <ul>
+                             <li>Missing <code>;</code> at the end of a line (JavaScript, Java, C, C++, C#)</li>
+                             <li>Missing <code>:</code> after <code>if</code>, <code>for</code>, or <code>def</code> (Python)</li>
+                             <li>Wrong <strong>indentation</strong> (Python)</li>
+                             <li>Unclosed quotes <code>"</code>, brackets <code>( )</code>, or braces <code>{ }</code></li>
+                             <li>Using <code>=</code> (set) when you meant <code>==</code> (compare)</li>
+                             <li>Misspelled keywords or variable names, since <code>Print</code> isn't <code>print</code></li>
+                           </ul>`
+                },
+                {
+                    heading: 'How to play',
+                    body: `<p>The quiz is a set of <strong>code puzzles</strong> in a code editor:</p>
+                           <ul>
+                             <li><strong>Find the bug:</strong> click the line that contains the mistake</li>
+                             <li><strong>Fill the blank:</strong> pick the keyword that makes the code work</li>
+                           </ul>
+                           <p>After each answer, you'll see an explanation. Get 6 of 9 right to pass. Good luck, debugger!</p>`
+                }
+            ],
+            quiz: [
+                {
+                    type: 'line', lang: 'python',
+                    q: 'Find the bug: click the line that will cause a syntax error.',
+                    code: 'def greet(name)\n    print("Hi, " + name)\n\ngreet("Ada")',
+                    answer: 0,
+                    explain: 'Line 1 is missing a colon. In Python, def, if, for, and while lines must end with ":".'
+                },
+                {
+                    type: 'blank', lang: 'python',
+                    q: 'Fill the blank: which keyword makes this decision work?',
+                    code: '___ score >= 90:\n    print("A")\nelse:\n    print("Keep going!")',
+                    choices: ['def', 'if', 'class', 'return'],
+                    answer: 1,
+                    explain: '"if" checks a condition. The else block runs when the condition is false.'
+                },
+                {
+                    type: 'line', lang: 'python',
+                    q: 'Find the bug: this loop crashes before it starts. Which line?',
+                    code: 'pets = ["capybara", "duck"]\nfor pet in pets:\nprint(pet)',
+                    answer: 2,
+                    explain: 'Line 3 must be indented. Python uses indentation to know which code belongs inside the loop (IndentationError).'
+                },
+                {
+                    type: 'line', lang: 'javascript',
+                    q: 'Find the bug: click the line with the syntax error.',
+                    code: 'const name = "Ada;\nconsole.log("Hello, " + name);',
+                    answer: 0,
+                    explain: 'Line 1 never closes its string. "Ada needs a closing quote: "Ada".'
+                },
+                {
+                    type: 'blank', lang: 'javascript',
+                    q: 'Fill the blank: which keyword declares this function in JavaScript?',
+                    code: '___ add(a, b) {\n    return a + b;\n}',
+                    choices: ['def', 'func', 'function', 'void'],
+                    answer: 2,
+                    explain: 'JavaScript uses "function". Python uses "def", and Java, C, and C++ start with a return type like "int" or "void".'
+                },
+                {
+                    type: 'line', lang: 'javascript',
+                    q: 'Find the bug: this runs, but always prints "Perfect!" even when the score is 50. Why?',
+                    code: 'let score = 50;\nif (score = 100) {\n    console.log("Perfect!");\n}',
+                    answer: 1,
+                    explain: 'Line 2 uses = (set) instead of === (compare), so it changes score to 100. That\'s a logic error: no crash, just a wrong result.'
+                },
+                {
+                    type: 'line', lang: 'java',
+                    q: 'Find the bug: this won\'t compile. Click the broken line.',
+                    code: 'public class Main {\n    public static void main(String[] args) {\n        int level = 2\n        System.out.println(level);\n    }\n}',
+                    answer: 2,
+                    explain: 'Line 3 is missing a semicolon. In Java, every statement must end with ";".'
+                },
+                {
+                    type: 'blank', lang: 'java',
+                    q: 'Fill the blank: which keyword creates a new Pet object?',
+                    code: 'Pet capy = ___ Pet("Capybara");\ncapy.speak();',
+                    choices: ['make', 'new', 'create', 'class'],
+                    answer: 1,
+                    explain: '"new" builds an object from a class. The same keyword works in Java, C#, C++, and JavaScript.'
+                },
+                {
+                    type: 'blank', lang: 'cpp',
+                    q: 'Fill the blank: what type does main() return in C++?',
+                    code: '#include <iostream>\n\n___ main() {\n    std::cout << "Hello!" << std::endl;\n    return 0;\n}',
+                    choices: ['void', 'def', 'int', 'string'],
+                    answer: 2,
+                    explain: 'main() returns an "int". return 0 tells the system the program finished successfully.'
+                }
+            ]
         }
     ],
 

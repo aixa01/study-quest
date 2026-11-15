@@ -168,6 +168,7 @@ function show(id) {
     document.getElementById('nav-arrows').classList.toggle('hidden', !flow.includes(id));
     document.getElementById('log-btn').classList.toggle('hidden', id === 'login' || id === 'intro');
     document.getElementById('edit-character').classList.toggle('hidden', id === 'login');
+    document.getElementById('home-btn').classList.toggle('hidden', id === 'login' || id === 'map' || !profile.character);
 }
 
 
@@ -363,6 +364,15 @@ document.querySelectorAll('.menu-item[data-panel]').forEach(item => {
     });
 });
 
+document.getElementById('home-btn').addEventListener('click', () => {
+    makeSound("click");
+    closeMenu();
+    closePanels();
+    flow = ['map'];
+    pos = 0; furthest = 0;
+    goTo('map');
+});
+
 document.getElementById('replay-intro').addEventListener('click', () => {
     makeSound("click");
     closeMenu();
@@ -504,7 +514,9 @@ const PETS = [
     { id: 'chicken',  name: 'Chicken' },
     { id: 'squirrel', name: 'Squirrel' },
     { id: 'rat',      name: 'Rat' },
+    { id: 'monkey',   name: 'Monkey' },
     { id: 'alpaca',   name: 'Alpaca' },
+    { id: 'goat',     name: 'Goat' },
     { id: 'seal',     name: 'Seal' },
     { id: 'kangaroo', name: 'Kangaroo' },
     { id: 'panda',    name: 'Panda' },
@@ -750,13 +762,17 @@ function renderLesson() {
         const q = document.createElement('p');
         q.textContent = item.q;
         el('lesson-body').appendChild(q);
-        item.choices.forEach((choice, i) => {
-            const btn = document.createElement('button');
-            btn.className = 'lesson-choice';
-            btn.textContent = choice;
-            btn.addEventListener('click', () => answer(i));
-            choicesBox.appendChild(btn);
-        });
+        // code puzzles: 'line' = click the buggy line, 'blank' = pick the missing keyword
+        if (item.code) el('lesson-body').appendChild(renderCode(item));
+        if (item.type !== 'line') {
+            item.choices.forEach((choice, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'lesson-choice' + (item.code ? ' code-choice' : '');
+                btn.textContent = choice;
+                btn.addEventListener('click', () => answer(i));
+                choicesBox.appendChild(btn);
+            });
+        }
         prev.classList.add('hidden');
         next.disabled = !lesson.answered;
         next.textContent = step === mod.quiz.length - 1 ? 'Finish' : 'Next';
@@ -781,7 +797,7 @@ function renderLesson() {
             el('lesson-body').appendChild(r);
         }
         prev.textContent = 'Review lesson';
-        next.textContent = passed ? 'Back to map' : 'Try again';
+        next.textContent = passed ? 'Back to home' : 'Try again';
     }
 
     if (phase !== 'result') prev.textContent = 'Back';
@@ -899,15 +915,90 @@ function answer(i) {
     const correct = i === item.answer;
     lesson.answered = true;
     if (correct) lesson.score++;
-    el('lesson-choices').querySelectorAll('.lesson-choice').forEach((btn, j) => {
+    // line puzzles mark the code lines; everything else marks the choice buttons
+    const buttons = item.type === 'line'
+        ? el('lesson-body').querySelectorAll('.code-line')
+        : el('lesson-choices').querySelectorAll('.lesson-choice');
+    buttons.forEach((btn, j) => {
         btn.disabled = true;
         if (j === item.answer) btn.classList.add('correct');
         else if (j === i) btn.classList.add('wrong');
     });
-    el('lesson-feedback').textContent = correct
-        ? 'Correct!'
-        : `Not quite. The answer is "${item.choices[item.answer]}".`;
+    // blank puzzles: drop the right keyword into the code
+    el('lesson-body').querySelectorAll('.code-blank').forEach(b => {
+        b.textContent = item.choices[item.answer];
+        b.classList.add('filled');
+    });
+    if (item.explain) {
+        el('lesson-feedback').textContent = (correct ? 'Correct! ' : 'Not quite. ') + item.explain;
+    } else {
+        el('lesson-feedback').textContent = correct
+            ? 'Correct!'
+            : `Not quite. The answer is "${item.choices[item.answer]}".`;
+    }
     el('lesson-next').disabled = false;
+}
+
+// ---------- CODE PANEL (IDE look) ----------
+const KEYWORDS = {
+    python: ['def', 'return', 'if', 'elif', 'else', 'for', 'while', 'in', 'and', 'or', 'not', 'class', 'import', 'True', 'False', 'None', 'print'],
+    javascript: ['let', 'const', 'var', 'function', 'return', 'if', 'else', 'for', 'while', 'class', 'new', 'true', 'false', 'null'],
+    java: ['public', 'private', 'class', 'static', 'void', 'int', 'double', 'boolean', 'String', 'new', 'return', 'if', 'else', 'for', 'while'],
+    cpp: ['int', 'double', 'bool', 'void', 'return', 'if', 'else', 'for', 'while', 'class', 'public', 'private', 'std', 'include'],
+    html: [],
+};
+const FILE_NAMES = { python: 'main.py', javascript: 'script.js', java: 'Main.java', cpp: 'main.cpp', html: 'index.html' };
+
+// color one line of code safely (text only, no HTML injection)
+function colorLine(text, lang, parent) {
+    const words = KEYWORDS[lang] || [];
+    const commentMark = lang === 'python' ? '#' : '//';
+    const pattern = /("[^"]*"?|'[^']*'?|\b\d+\b|\b[A-Za-z_]+\b|___|<\/?[a-z]+|#.*|\/\/.*)/g;
+    let last = 0;
+    for (const m of text.matchAll(pattern)) {
+        if (m.index > last) parent.append(text.slice(last, m.index));
+        const tok = m[0];
+        const span = document.createElement('span');
+        span.textContent = tok;
+        if (tok === '___') span.className = 'code-blank';
+        else if (tok.startsWith(commentMark) && lang !== 'cpp') span.className = 'tok-comment';
+        else if (lang === 'cpp' && tok.startsWith('#')) span.className = 'tok-keyword';
+        else if (tok.startsWith('//')) span.className = 'tok-comment';
+        else if (tok[0] === '"' || tok[0] === "'") span.className = 'tok-string';
+        else if (/^\d/.test(tok)) span.className = 'tok-number';
+        else if (tok[0] === '<') span.className = 'tok-tag';
+        else if (words.includes(tok)) span.className = 'tok-keyword';
+        else span.className = '';
+        parent.appendChild(span);
+        last = m.index + tok.length;
+    }
+    if (last < text.length) parent.append(text.slice(last));
+}
+
+function renderCode(item) {
+    const panel = document.createElement('div');
+    panel.className = 'code-panel';
+    const tab = document.createElement('div');
+    tab.className = 'code-tab';
+    tab.textContent = FILE_NAMES[item.lang] || 'code';
+    panel.appendChild(tab);
+    const body = document.createElement('div');
+    body.className = 'code-lines';
+    item.code.split('\n').forEach((line, i) => {
+        const row = document.createElement(item.type === 'line' ? 'button' : 'div');
+        row.className = 'code-line';
+        const num = document.createElement('span');
+        num.className = 'code-num';
+        num.textContent = i + 1;
+        const content = document.createElement('span');
+        content.className = 'code-text';
+        colorLine(line || ' ', item.lang, content);
+        row.append(num, content);
+        if (item.type === 'line') row.addEventListener('click', () => answer(i));
+        body.appendChild(row);
+    });
+    panel.appendChild(body);
+    return panel;
 }
 
 async function completeModule() {
@@ -974,5 +1065,7 @@ el('lesson-back').addEventListener('click', () => {
 });
 
 show('login');
+
+
 
 
