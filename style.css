@@ -30,6 +30,26 @@ body {
     animation: drift var(--speed) linear infinite;
 }
 
+#name-input {
+    font-family: "Pixelify Sans", sans-serif;
+    font-size: 1.2rem;
+    color: #3b2a1a;
+    background: #f5e6b8;
+    border: 4px solid #3b2a1a;
+    box-shadow: inset 3px 3px 0 #d9c29a, 4px 4px 0 #000;   /* chunky pixel depth */
+    padding: 10px 14px;
+    width: 260px;
+    margin-right: 12px;
+    outline: none;
+}
+
+#name-input::placeholder { color: #8a6e4b; }
+
+#name-input:focus {
+    background: #fff4d6;
+    border-color: #ffd34d;                 /* glows yellow while typing */
+}
+
 @keyframes drift {
     to { transform: translateX(-50%); }
 }
@@ -198,11 +218,36 @@ body {
     cursor: not-allowed;
 }
 
+.log-btn {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 20;
+}
 
-#intro {
+#intro, #map, #welcome-back, #lesson {
     position: fixed;
     inset: 0;
     overflow: hidden;
+}
+
+.track-popup {
+    border: 18px solid transparent;
+    border-image: url('/images/ui/UI_TravelBook_Popup01a.png') 4 fill / 18px stretch;
+    image-rendering: pixelated;
+    padding: 1rem 2rem 1.5rem;
+    max-width: 520px;
+    color: #5a3b2e;
+    text-align: center;
+    animation: popIn 0.35s ease-out;
+}
+
+.track-popup .speaker { color: #a0522d; margin: 0; }
+.track-popup h2 { margin: 0.25rem 0 1.25rem; font-size: 1.6rem; }
+
+@keyframes popIn {
+    from { transform: scale(0.6); opacity: 0; }
+    to   { transform: scale(1);   opacity: 1; }
 }
 
 .textbox {
@@ -284,14 +329,9 @@ body {
     position: absolute;
     inset: 0;
     background-image: url('/images/global.png');
-    background-size: 800% 1200%;  /* 8 columns × 12 rows */
+    background-size: 800% 1200%;
     image-rendering: pixelated;
-    animation: walk 0.8s steps(7, jump-none) infinite;
-}
-
-@keyframes walk {
-    from { background-position-x: 0%; }
-    to   { background-position-x: 100%; }
+    background-position-x: 0%;     /* first frame = standing pose */
 }
 
 .char-options {
@@ -313,3 +353,195 @@ body {
 }
 
 .char-options .value { text-align: center; color: #ffd34d; }
+
+.log-char {
+    width: 128px;              /* 32px frame × 4 */
+    height: 128px;
+    margin: -10px auto 0;      /* tuck up toward the top edge */
+    background: none;
+    border: none;
+}
+
+/* ----- LEARNING LOG (Travel Book) — everything at exactly 3x ----- */
+.book-wrap {
+    position: relative;
+    padding-top: 130px;                 /* room for banner + tabs */
+}
+
+.book-banner {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 12px solid transparent;
+    border-image: url('/images/ui/UI_TravelBook_Popup01a.png') 4 fill / 12px stretch;
+    image-rendering: pixelated;
+    padding: 4px 40px;
+    font-size: 2rem;
+    color: #5a3b2e;
+    white-space: nowrap;
+}
+
+.book-tabs {
+    position: absolute;
+    top: 88px;
+    left: 40px;
+    display: flex;
+    gap: 4px;
+}
+
+.book-tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 42px;                       /* 14px × 3 */
+    border: 9px solid transparent;
+    border-image: url('/images/ui/UI_TravelBook_Frame01a.png') 3 fill / 9px stretch;
+    image-rendering: pixelated;
+    background: none;
+    font-family: "Pixelify Sans", sans-serif;
+    font-size: 1rem;
+    color: #5a3b2e;
+    padding: 0 6px;
+    cursor: pointer;
+}
+
+.book-tab.active {
+    border-image-source: url('/images/ui/UI_TravelBook_FrameSelect01a.png');
+    transform: translateY(-4px);
+}
+
+.book-tab img { height: 24px; image-rendering: pixelated; }
+
+.book {
+    position: relative;
+    width: 672px;                       /* 224 × 3 */
+    height: 480px;                      /* 160 × 3 */
+    background: url('/images/ui/UI_TravelBook_BookCover01a.png') 0 0 / 100% 100%;
+    image-rendering: pixelated;
+}
+
+.book-page {
+    position: absolute;
+    top: 12px;
+    left: 24px;
+    display: flex;
+}
+
+.page {
+    width: 312px;                       /* 104 × 3 */
+    height: 441px;                      /* 147 × 3 */
+    box-sizing: border-box;
+    padding: 30px 18px 36px;
+    background-size: 100% 100%;
+    image-rendering: pixelated;
+    color: #5a3b2e;
+    text-align: left;
+    overflow-y: auto;
+}
+
+.page.left  { background-image: url('/images/ui/UI_TravelBook_BookPageLeft01a.png'); }
+.page.right { background-image: url('/images/ui/UI_TravelBook_BookPageRight01a.png'); transform-origin: left center; }
+
+.page h2 { font-size: 1.8rem; margin: 0 0 0.5rem; }
+.page h3 { margin: 0 0 0.75rem; }
+.page .small { font-size: 0.85rem; }
+.level { display: flex; align-items: center; gap: 6px; font-size: 1.2rem; }
+.level img { height: 27px; image-rendering: pixelated; }
+
+/* page flip when switching tabs */
+.book-page.flip .page.right { animation: pageFlip 0.45s ease-out; }
+@keyframes pageFlip {
+    from { transform: perspective(900px) rotateY(-100deg); }
+    to   { transform: perspective(900px) rotateY(0deg); }
+}
+
+/* XP bar */
+.xp-bar {
+    position: relative;
+    height: 12px;
+    background: url('/images/ui/UI_TravelBook_Bar01a.png') 0 0 / 100% 100%;
+    image-rendering: pixelated;
+}
+.xp-inner { position: absolute; inset: 3px; }
+.xp-fill {
+    height: 100%;
+    width: 0%;
+    background: url('/images/ui/UI_TravelBook_Fill01a.png') 0 0 / 100% 100%;
+    image-rendering: pixelated;
+    transition: width 0.4s;
+}
+
+/* Pets */
+.pet-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 90px);
+    gap: 3px;
+}
+.pet {
+    position: relative;
+    width: 90px;                        /* 30 × 3 */
+    height: 90px;
+    background: url('/images/ui/UI_TravelBook_Slot01a.png') 0 0 / 100% 100%;
+    image-rendering: pixelated;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+.pet img { width: 60px; height: 60px; image-rendering: pixelated; }
+.pet.locked img, .pet-big.locked { filter: brightness(0); opacity: 0.6; }
+
+.pet:hover::after, .pet.selected::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-size: 100% 100%;
+    image-rendering: pixelated;
+    animation: slotCursor 0.6s infinite;
+}
+@keyframes slotCursor {
+    0%   { background-image: url('/images/ui/UI_TravelBook_SlotCursor01a_1.png'); }
+    25%  { background-image: url('/images/ui/UI_TravelBook_SlotCursor01a_2.png'); }
+    50%  { background-image: url('/images/ui/UI_TravelBook_SlotCursor01a_3.png'); }
+    75%  { background-image: url('/images/ui/UI_TravelBook_SlotCursor01a_4.png'); }
+}
+.pet-big { width: 120px; height: 120px; image-rendering: pixelated; display: block; margin: 0.5rem auto; }
+
+/* Settings sliders */
+.setting {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 1.1rem;
+    margin-bottom: 1.5rem;
+}
+.setting input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 12px;
+    background: url('/images/ui/UI_TravelBook_Bar01a.png') 0 0 / 100% 100%;
+    image-rendering: pixelated;
+    cursor: pointer;
+}
+.setting input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 21px;                        /* 7 × 3 */
+    height: 24px;                       /* 8 × 3 */
+    background: url('/images/ui/UI_TravelBook_Handle03a.png') 0 0 / 100% 100%;
+    image-rendering: pixelated;
+    border: none;
+}
+.setting input[type="range"]::-moz-range-thumb {
+    width: 21px;
+    height: 24px;
+    background: url('/images/ui/UI_TravelBook_Handle03a.png') 0 0 / 100% 100%;
+    border: none;
+    border-radius: 0;
+}
+
+/* shrink a little on short laptop screens */
+@media (max-height: 680px) {
+    .book-wrap { transform: scale(0.85); }
+}

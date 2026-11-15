@@ -21,48 +21,88 @@
             <div id="menu-list" class="menu-list hidden">
                 <button class="menu-item" data-panel="about-panel">About</button>
                 <button class="menu-item" data-panel="contact-panel">Contact</button>
+                <button id="edit-character" class="menu-item">Character Design</button>
                 <button id="replay-intro" class="menu-item">Play Intro</button>
                 <button id="logout-btn" class="menu-item">Sign Out</button>
             </div>
         </div>
 
-        <button id="log-btn" class="pixel-btn log-btn">Log</button>
+        <button id="log-btn" class="pixel-btn log-btn hidden">Log</button>
 
         <div id="log-panel" class="panel-backdrop hidden">
-            <div class="book">
-                <button class="icon-btn btn-close panel-close" aria-label="Close"></button>
-
+            <div class="book-wrap">
+                <div class="book-banner">Learning Log</div>
+        
                 <div class="book-tabs">
-                    <button class="book-tab active" data-tab="tab-info">Info</button>
-                    <button class="book-tab" data-tab="tab-pets">Pets</button>
+                    <button class="book-tab active" data-tab="tab-info">
+                        <img src="/images/ui/UI_TravelBook_IconStar01a.png" alt=""> Info
+                    </button>
+                    <button class="book-tab" data-tab="tab-pets">
+                        <img src="/images/ui/UI_TravelBook_IconHeart01a.png" alt=""> Pets
+                    </button>
                     <button class="book-tab" data-tab="tab-achievements">Achievements</button>
-                    <button class="book-tab" data-tab="tab-settings">Settings</button>
+                    <button class="book-tab" data-tab="tab-settings">
+                        <img src="/images/ui/UI_TravelBook_IconGear01a.png" alt=""> Settings
+                    </button>
                 </div>
-
-                <div id="tab-info" class="book-page">
-                    <h2 id="log-name"></h2>
-                    <p>Joined: <span id="log-joined">—</span></p>
-                    <p>Level <span id="log-level">1</span></p>
-                    <div class="xp-bar"><div id="xp-fill" class="xp-fill"></div></div>
-                    <p id="log-xp-text"></p>
-                    <p>Modules completed: <span id="log-modules">0</span></p>
-                </div>
-
-                <div id="tab-pets" class="book-page hidden">
-                    <div id="pet-grid" class="pet-grid"></div>
-                </div>
-
-                <div id="tab-achievements" class="book-page hidden">
-                    <p>Coming soon...</p>
-                </div>
-
-                <div id="tab-settings" class="book-page hidden">
-                    <label class="setting">Music
-                        <input type="range" id="music-vol" min="0" max="100">
-                    </label>
-                    <label class="setting">Sound effects
-                        <input type="range" id="sfx-vol" min="0" max="100">
-                    </label>
+        
+                <div class="book">
+                    <button class="icon-btn btn-close panel-close" aria-label="Close"></button>
+        
+                    <div id="tab-info" class="book-page">
+                        <div class="page left">
+                            <div class="char-preview log-char">
+                                <div class="char-layer" data-layer="body"></div>
+                                <div class="char-layer" data-layer="shoes"></div>
+                                <div class="char-layer" data-layer="pants"></div>
+                                <div class="char-layer" data-layer="shirt"></div>
+                                <div class="char-layer" data-layer="hair"></div>
+                                <div class="char-layer" data-layer="hat"></div>
+                            </div>
+                            <h2 id="log-name"></h2>
+                            <p class="level"><img src="/images/ui/UI_TravelBook_IconStar01a.png" alt=""> Level <span id="log-level">1</span></p>
+                            <div class="xp-bar"><div class="xp-inner"><div id="xp-fill" class="xp-fill"></div></div></div>
+                            <p id="log-xp-text" class="small"></p>
+                        </div>
+                        <div class="page right">
+                            <h3>Journey</h3>
+                            <p>Joined: <span id="log-joined">—</span></p>
+                            <p>Modules completed: <span id="log-modules">0</span></p>
+                        </div>
+                    </div>
+        
+                    <div id="tab-pets" class="book-page hidden">
+                        <div class="page left">
+                            <h3>Companions</h3>
+                            <div id="pet-grid" class="pet-grid"></div>
+                        </div>
+                        <div class="page right">
+                            <div id="pet-detail"></div>
+                        </div>
+                    </div>
+        
+                    <div id="tab-achievements" class="book-page hidden">
+                        <div class="page left">
+                            <h3>Achievements</h3>
+                            <p>Coming soon...</p>
+                        </div>
+                        <div class="page right"></div>
+                    </div>
+        
+                    <div id="tab-settings" class="book-page hidden">
+                        <div class="page left">
+                            <h3>Sound</h3>
+                            <label class="setting">Music
+                                <input type="range" id="music-vol" min="0" max="100">
+                            </label>
+                            <label class="setting">Sound effects
+                                <input type="range" id="sfx-vol" min="0" max="100">
+                            </label>
+                        </div>
+                        <div class="page right">
+                            <p class="small">Changes save automatically to your account.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -155,12 +195,19 @@
         </section>
 
         <section id="welcome-back" class="hidden">
+            <div class="parallax">
+                <div class="layer" style="--img:url('/images/mountain1.png'); --speed:0s"></div>
+                <div class="layer" style="--img:url('/images/mountain2.png'); --speed:180s"></div>
+                <div class="layer" style="--img:url('/images/mountain3.png'); --speed:120s"></div>
+                <div class="layer" style="--img:url('/images/mountain4.png'); --speed:80s"></div>
+            </div>
             <div class="textbox">
                 <p class="speaker">Textbook</p>
                 <p id="welcome-text"></p>
                 <button id="continue-btn" class="pixel-btn">Continue</button>
             </div>
         </section>
+        
         <section id="creator" class="hidden">
             <div class="creator-box">
                 <h2>Design your character</h2>
@@ -177,9 +224,10 @@
                 <div id="char-options" class="char-options"></div>
         
                 <button id="creator-done" class="pixel-btn">Choose this character</button>
+                <button id="creator-cancel" class="pixel-btn hidden">Cancel</button>
             </div>
         </section>
-        
+
         <section id="story" class="hidden"><p id="story-text"></p></section>
         <section id="tutorial" class="hidden"><h2>Choose your first path</h2></section>
         <section id="map" class="hidden">
@@ -191,11 +239,28 @@
             </div>
 
             <div class="map-content">
-                <h2 class="map-title">Choose a path</h2>
-                <div class="topic-list">
-                    <button class="pixel-btn" data-topic="math">Math</button>
-                    <button class="pixel-btn" data-topic="cs">Computer Science</button>
+                <div class="track-popup">
+                    <p class="speaker">Textbook</p>
+                    <h2>Which track would you like to explore today?</h2>
+                    <div class="topic-list">
+                        <button class="pixel-btn topic-btn" data-topic="math">Math</button>
+                        <button class="pixel-btn topic-btn" data-topic="cs">Computer Science</button>
+                    </div>
                 </div>
+            </div>
+        </section>
+
+        <section id="lesson" class="hidden">
+            <div class="parallax">
+                <div class="layer" style="--img:url('/images/mountain1.png'); --speed:0s"></div>
+                <div class="layer" style="--img:url('/images/mountain2.png'); --speed:180s"></div>
+                <div class="layer" style="--img:url('/images/mountain3.png'); --speed:120s"></div>
+                <div class="layer" style="--img:url('/images/mountain4.png'); --speed:80s"></div>
+            </div>
+            <div class="textbox">
+                <p class="speaker">Textbook</p>
+                <p id="lesson-text"></p>
+                <button id="lesson-back" class="pixel-btn">Back to map</button>
             </div>
         </section>
 

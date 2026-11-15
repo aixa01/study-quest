@@ -66,11 +66,12 @@ let character = { body: 0, hair: 1, shirt: 0, pants: 0, shoes: 1, hat: 0 };
 
 function applyLayer(key) {
     const L = LAYERS[key];
-    const el = document.querySelector(`.char-layer[data-layer="${key}"]`);
     const f = L.filters[character[key]];
-    el.style.display = f === 'hide' ? 'none' : 'block';
-    el.style.filter = f === 'hide' ? 'none' : f;
-    el.style.backgroundPositionY = (L.row / 11 * 100) + '%';
+    document.querySelectorAll(`.char-layer[data-layer="${key}"]`).forEach(el => {
+        el.style.display = f === 'hide' ? 'none' : 'block';
+        el.style.filter = f === 'hide' ? 'none' : f;
+        el.style.backgroundPositionY = (L.row / 11 * 100) + '%';
+    });
     const valueEl = document.getElementById(`val-${key}`);
     if (valueEl) valueEl.textContent = L.options[character[key]];
 }
@@ -100,11 +101,46 @@ function buildCreator() {
 
 buildCreator();
 
+let editingCharacter = false;
+let editReturnTo = 'map';
+let characterBackup = null;
+
 document.getElementById('creator-done').addEventListener('click', async () => {
     makeSound("click");
     await setDoc(doc(db, 'users', auth.currentUser.uid), { character }, { merge: true });
-    profile.character = character;
-    goTo('map');
+    profile.character = { ...character };
+
+    if (editingCharacter) {
+        editingCharacter = false;
+        document.getElementById('creator-cancel').classList.add('hidden');
+        document.getElementById('creator-done').textContent = 'Choose this character';
+        show(editReturnTo);
+    } else {
+        flow = ['map'];
+        pos = 0; furthest = 0;
+        goTo('map');
+    }
+});
+
+document.getElementById('creator-cancel').addEventListener('click', () => {
+    makeSound("click");
+    character = characterBackup;
+    for (const key in LAYERS) applyLayer(key);
+    editingCharacter = false;
+    document.getElementById('creator-cancel').classList.add('hidden');
+    document.getElementById('creator-done').textContent = 'Choose this character';
+    show(editReturnTo);
+});
+
+document.getElementById('edit-character').addEventListener('click', () => {
+    makeSound("click");
+    closeMenu();
+    editingCharacter = true;
+    editReturnTo = currentScreen;
+    characterBackup = { ...character };
+    document.getElementById('creator-done').textContent = 'Save changes';
+    document.getElementById('creator-cancel').classList.remove('hidden');
+    show('creator');
 });
 
 // Sound Function
@@ -130,6 +166,7 @@ function show(id) {
     document.getElementById('replay-intro').classList.toggle('hidden', id === 'login');
     document.getElementById('nav-arrows').classList.toggle('hidden', !flow.includes(id));
     document.getElementById('log-btn').classList.toggle('hidden', id === 'login' || id === 'intro');
+    document.getElementById('edit-character').classList.toggle('hidden', id === 'login');
 }
 
 
@@ -219,12 +256,19 @@ document.getElementById('login-btn').addEventListener('click', async () => {
         profile = snap.exists() ? snap.data() : {};
         settings = { ...settings, ...(profile.settings || {}) };
         applyVolumes();
+        // backfill join date for accounts created before we started saving it
+        if (!profile.joinedAt && auth.currentUser) {
+            profile.joinedAt = new Date(auth.currentUser.metadata.creationTime).toISOString();
+            await setDoc(doc(db, 'users', auth.currentUser.uid), { joinedAt: profile.joinedAt }, { merge: true });
+        }
         if (profile.character) { character = profile.character; for (const key in LAYERS) applyLayer(key); }
 
         if (snap.exists() && snap.data().name) {
             document.getElementById('welcome-text').textContent =
                 `Welcome back, ${snap.data().name}!`; 
             music.play().catch(() => {});
+            flow = profile.character ? ['map'] : ['creator', 'map'];   // creator only if they never finished it
+            pos = 0; furthest = 0;
             show('welcome-back');
         } else {
             startIntro();
@@ -253,16 +297,18 @@ document.getElementById('name-next').addEventListener('click', async () => {
     const newData = { name, joinedAt: new Date().toISOString(), xp: 0, completedModules: [], pets: [] };
     await setDoc(doc(db, 'users', auth.currentUser.uid), newData, { merge: true });
     profile = { ...profile, ...newData };
+    flow = ['creator', 'map'];
+    pos = 0; furthest = 0;
     goTo('creator');
 });
 
 document.getElementById('continue-btn').addEventListener('click', () => {
     makeSound("click");
-    goTo('map');
+    goTo(profile.character ? 'map' : 'creator');
 });
 
 // Navigation
-const flow = ['name', 'creator', 'map'];
+let flow = ['name', 'creator', 'map'];
 let pos = 0;
 let furthest = 0;
 
@@ -318,6 +364,7 @@ document.getElementById('replay-intro').addEventListener('click', () => {
     closeMenu();
     returnTo = currentScreen;
     music.pause();
+    flow = ['name', 'creator', 'map']; pos = 0; furthest = 0;
     startIntro();
 });
 
@@ -349,6 +396,7 @@ const PETS = [
 ];
 
 function renderLog() {
+    for (const key in LAYERS) applyLayer(key);
     const xp = profile.xp || 0;
     const level = Math.floor(xp / 100) + 1;           // every 100 XP = 1 level
     const xpIntoLevel = xp % 100;
@@ -362,22 +410,28 @@ function renderLog() {
     document.getElementById('log-xp-text').textContent = `${xpIntoLevel} / 100 XP to Level ${level + 1}`;
     document.getElementById('log-modules').textContent = (profile.completedModules || []).length;
 
-    // pets: owned = color, not owned = silhouette
     const owned = profile.pets || [];
     const grid = document.getElementById('pet-grid');
     grid.innerHTML = '';
-    PETS.forEach(pet => {
+    PETS.forEach((pet, i) => {
         const has = owned.includes(pet.id);
-        const card = document.createElement('div');
-        card.className = 'pet' + (has ? '' : ' locked');
-        card.innerHTML = `
-            <img src="${pet.img}" alt="${pet.name}">
-            <p>${has ? pet.name : '???'}</p>
-            ${has ? '' : `<p class="hint">${pet.hint}</p>`}
-        `;
-        grid.appendChild(card);
+        const slot = document.createElement('div');
+        slot.className = 'pet' + (has ? '' : ' locked');
+        slot.innerHTML = `<img src="${pet.img}" alt="${has ? pet.name : 'Unknown pet'}">`;
+        slot.addEventListener('click', () => { makeSound("click"); selectPet(i); });
+        grid.appendChild(slot);
     });
+    selectPet(0);
 
+    function selectPet(i) {
+        const pet = PETS[i];
+        const has = (profile.pets || []).includes(pet.id);
+        document.querySelectorAll('.pet').forEach((p, j) => p.classList.toggle('selected', j === i));
+        document.getElementById('pet-detail').innerHTML = has
+            ? `<h3>${pet.name}</h3><img class="pet-big" src="${pet.img}" alt="${pet.name}"><p>Your companion!</p>`
+            : `<h3>???</h3><img class="pet-big locked" src="${pet.img}" alt="Unknown pet"><p class="small">${pet.hint}</p>`;
+    }
+  
     // settings sliders show saved values
     document.getElementById('music-vol').value = settings.music;
     document.getElementById('sfx-vol').value = settings.sfx;
@@ -396,7 +450,10 @@ document.querySelectorAll('.book-tab').forEach(tab => {
         document.querySelectorAll('.book-tab').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.book-page').forEach(p => p.classList.add('hidden'));
         tab.classList.add('active');
-        document.getElementById(tab.dataset.tab).classList.remove('hidden');
+        const page = document.getElementById(tab.dataset.tab);
+        page.classList.remove('hidden', 'flip');
+        void page.offsetWidth;          // restart the animation
+        page.classList.add('flip');
     });
 });
 
@@ -412,3 +469,29 @@ document.querySelectorAll('.book-tab').forEach(tab => {
         await setDoc(doc(db, 'users', auth.currentUser.uid), { settings }, { merge: true });
     });
 });
+
+// ---------- TRACKS ----------
+const TRACK_NAMES = { math: 'Math', cs: 'Computer Science' };
+let currentTrack = null;
+
+document.querySelectorAll('.topic-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+        makeSound("click");
+        currentTrack = btn.dataset.topic;
+        await setDoc(doc(db, 'users', auth.currentUser.uid), { lastTrack: currentTrack }, { merge: true });
+        startTrack(currentTrack);
+    });
+});
+
+function startTrack(topic) {
+    document.getElementById('lesson-text').textContent =
+        `Welcome to the ${TRACK_NAMES[topic]} track! Your first lesson is almost ready...`;
+    show('lesson');
+}
+
+document.getElementById('lesson-back').addEventListener('click', () => {
+    makeSound("click");
+    show('map');
+});
+
+show('login');
